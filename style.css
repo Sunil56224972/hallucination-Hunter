@@ -1969,8 +1969,7 @@ body {
     display: none;
   }
 
-  /* Hide Load example + char count on mobile */
-  #btn-example,
+  /* Hide char count only on mobile */
   .char-indicator {
     display: none;
   }
