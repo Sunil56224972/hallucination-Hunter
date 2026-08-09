@@ -1030,10 +1030,11 @@ function animateNumWithSuffix(el, target, suffix) {
 
     recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = false; // Disable interim — prevents duplicate/repeated words
     recognition.lang = 'en-US';
 
-    let finalTranscript = input.value;
+    const startText = input.value; // Text that was in box before recording
+    let newSpeech = '';             // Only speech added this session
 
     recognition.onstart = () => {
       isRecording = true;
@@ -1042,15 +1043,14 @@ function animateNumWithSuffix(el, target, suffix) {
     };
 
     recognition.onresult = (e) => {
-      let interim = '';
+      // Only process final results — accumulate new speech
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
-          finalTranscript += (finalTranscript ? ' ' : '') + e.results[i][0].transcript;
-        } else {
-          interim += e.results[i][0].transcript;
+          newSpeech += (newSpeech ? ' ' : '') + e.results[i][0].transcript.trim();
         }
       }
-      input.value = finalTranscript + (interim ? ' ' + interim : '');
+      // Show: original text + new speech (no duplication)
+      input.value = startText + (startText && newSpeech ? ' ' : '') + newSpeech;
       charCount.textContent = input.value.length;
     };
 
