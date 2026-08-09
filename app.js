@@ -292,47 +292,125 @@ Respond in JSON:
     { role: 'user', content: `Fact-check each of these claims with absolute accuracy. Provide the REAL correct information for any false claims:\n\n${claimList}` }
   ], 0.1);
 
-  // Map well-known source names to verified real URLs
+  // Map well-known source names to VERIFIED REAL URLs
+  // STRICT: Only sources in this map get a URL — everything else is set to null
   const knownSourceUrls = {
+    // Government & Intergovernmental
     'nasa': 'https://www.nasa.gov',
     'nasa earth observatory': 'https://earthobservatory.nasa.gov',
     'who': 'https://www.who.int',
     'world health organization': 'https://www.who.int',
-    'wikipedia': 'https://en.wikipedia.org',
     'cdc': 'https://www.cdc.gov',
     'centers for disease control': 'https://www.cdc.gov',
-    'american heart association': 'https://www.heart.org',
-    'american academy of orthopaedic surgeons': 'https://www.aaos.org',
-    'national institute of general medical sciences': 'https://www.nigms.nih.gov',
-    'national institutes of health': 'https://www.nih.gov',
-    'nih': 'https://www.nih.gov',
-    'harvard health publishing': 'https://www.health.harvard.edu',
-    'harvard health': 'https://www.health.harvard.edu',
-    'mayo clinic': 'https://www.mayoclinic.org',
+    'centers for disease control and prevention': 'https://www.cdc.gov',
+    'fda': 'https://www.fda.gov',
+    'u.s. food and drug administration': 'https://www.fda.gov',
+    'epa': 'https://www.epa.gov',
+    'u.s. environmental protection agency': 'https://www.epa.gov',
+    'usgs': 'https://www.usgs.gov',
+    'u.s. geological survey': 'https://www.usgs.gov',
+    'cia world factbook': 'https://www.cia.gov/the-world-factbook/',
     'unesco': 'https://www.unesco.org',
     'unesco world heritage centre': 'https://whc.unesco.org',
-    'national geographic': 'https://www.nationalgeographic.com',
-    'smithsonian': 'https://www.si.edu',
-    'national institute of diabetes and digestive and kidney diseases': 'https://www.niddk.nih.gov',
+    'united nations': 'https://www.un.org',
+    'fao': 'https://www.fao.org',
+    'food and agriculture organization': 'https://www.fao.org',
+    'food and agriculture organization of the united nations': 'https://www.fao.org',
+    'world bank': 'https://www.worldbank.org',
+    'imf': 'https://www.imf.org',
+    'international monetary fund': 'https://www.imf.org',
+    'noaa': 'https://www.noaa.gov',
+    'national oceanic and atmospheric administration': 'https://www.noaa.gov',
+
+    // Medical / Health
+    'nih': 'https://www.nih.gov',
+    'national institutes of health': 'https://www.nih.gov',
+    'national institute of general medical sciences': 'https://www.nigms.nih.gov',
     'niddk': 'https://www.niddk.nih.gov',
+    'national institute of diabetes and digestive and kidney diseases': 'https://www.niddk.nih.gov',
+    'american heart association': 'https://www.heart.org',
+    'american cancer society': 'https://www.cancer.org',
+    'american lung association': 'https://www.lung.org',
+    'american academy of orthopaedic surgeons': 'https://www.aaos.org',
+    'mayo clinic': 'https://www.mayoclinic.org',
+    'cleveland clinic': 'https://my.clevelandclinic.org',
+    'johns hopkins medicine': 'https://www.hopkinsmedicine.org',
+    'harvard health': 'https://www.health.harvard.edu',
+    'harvard health publishing': 'https://www.health.harvard.edu',
     'webmd': 'https://www.webmd.com',
-    'chinese historical records': null,
+    'medlineplus': 'https://medlineplus.gov',
     'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
+
+    // Academic / Science
     'nature': 'https://www.nature.com',
     'science': 'https://www.science.org',
+    'scientific american': 'https://www.scientificamerican.com',
+    'arxiv': 'https://arxiv.org',
+    'mit technology review': 'https://www.technologyreview.com',
+    'royal society': 'https://royalsociety.org',
+
+    // Reference / Encyclopedia
+    'wikipedia': 'https://en.wikipedia.org',
+    'britannica': 'https://www.britannica.com',
+    'encyclopedia britannica': 'https://www.britannica.com',
+    'national geographic': 'https://www.nationalgeographic.com',
+    'smithsonian': 'https://www.si.edu',
+    'smithsonian institution': 'https://www.si.edu',
+    'library of congress': 'https://www.loc.gov',
+
+    // News / Media
     'bbc': 'https://www.bbc.com',
+    'bbc news': 'https://www.bbc.com/news',
     'reuters': 'https://www.reuters.com',
-    'associated press': 'https://apnews.com'
+    'associated press': 'https://apnews.com',
+    'ap news': 'https://apnews.com',
+    'the new york times': 'https://www.nytimes.com',
+    'the guardian': 'https://www.theguardian.com',
+    'the washington post': 'https://www.washingtonpost.com',
+
+    // Tech
+    'python software foundation': 'https://www.python.org',
+    'python.org': 'https://www.python.org',
+    'mozilla developer network': 'https://developer.mozilla.org',
+    'mdn': 'https://developer.mozilla.org',
+    'stack overflow': 'https://stackoverflow.com',
+    'github': 'https://github.com',
+    'tiobe': 'https://www.tiobe.com',
+    'tiobe index': 'https://www.tiobe.com/tiobe-index/',
+    'ieee': 'https://www.ieee.org',
+    'acm': 'https://www.acm.org',
+
+    // History / Culture
+    'history.com': 'https://www.history.com',
+    'history channel': 'https://www.history.com',
+    'national archives': 'https://www.archives.gov',
+    'british museum': 'https://www.britishmuseum.org',
+    'metropolitan museum of art': 'https://www.metmuseum.org',
+
+    // Sources that should NOT have URLs (LLM commonly hallucinates these)
+    'chinese historical records': null,
+    'historical records': null,
+    'general knowledge': null,
+    'common knowledge': null,
+    'no source available': null,
+    'no source': null,
+    'various sources': null,
+    'multiple sources': null,
+    'historical consensus': null,
+    'academic consensus': null,
+    'national cultural heritage administration of china': null,
+    'national cultural heritage administration': null
   };
 
   const results = result.results || [];
-  // Validate and fix source URLs
+  // STRICT validation: only whitelisted sources get URLs, everything else → null
   return results.map(r => {
     const srcName = (r.source || '').toLowerCase().trim();
     if (knownSourceUrls.hasOwnProperty(srcName)) {
-      r.sourceUrl = knownSourceUrls[srcName];
-    } else if (r.sourceUrl && !r.sourceUrl.match(/^https?:\/\/(www\.)?[a-z0-9-]+\.[a-z]{2,}/i)) {
-      r.sourceUrl = null; // Remove obviously fake URLs
+      r.sourceUrl = knownSourceUrls[srcName]; // Use verified URL (or null)
+    } else {
+      // NOT in whitelist → strip any LLM-generated URL (likely hallucinated)
+      r.sourceUrl = null;
     }
     return r;
   });
