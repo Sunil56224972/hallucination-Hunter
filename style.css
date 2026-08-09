@@ -1939,42 +1939,44 @@ body {
     justify-content: center;
   }
 
-  /* Input bar: 2-row layout on mobile */
+  /* Input bar: stacked on mobile */
   .input-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: 0;
+    padding: 0;
   }
 
-  /* Actions row wraps — Analyze goes to its own full-width line */
+  /* Top row: Batch + Clear */
   .input-actions {
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 8px 12px;
     width: 100%;
+    box-sizing: border-box;
     justify-content: flex-start;
+    border-top: 1px solid var(--border-light);
   }
 
-  /* Batch + Clear stay on first line, Analyze pushes to new line full-width */
+  /* Analyze button: its own full-width row */
   #btn-analyze {
-    flex: 1 0 100%; /* full width, forces new row */
+    width: 100%;
+    display: flex;
     justify-content: center;
-    padding: 13px;
+    padding: 14px;
     font-size: 0.9rem;
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+    border-top: 1px solid rgba(255,255,255,0.1);
   }
 
-  /* Hide Load example on mobile */
-  #btn-example {
+  /* Hide Load example + char count on mobile */
+  #btn-example,
+  .char-indicator {
     display: none;
   }
 
   .batch-toggle {
     font-size: 0.8rem;
-  }
-
-  /* Hide char count */
-  .char-indicator {
-    display: none;
   }
 
   /* Page header */
