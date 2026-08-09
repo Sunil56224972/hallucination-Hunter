@@ -184,7 +184,7 @@ Open `http://localhost:8080` in your browser.
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -214,7 +214,7 @@ hallucination-Hunter/
 
 ---
 
-## 🔧 How It Works
+##  How It Works
 
 ```mermaid
 flowchart LR
@@ -238,7 +238,7 @@ flowchart LR
 
 ---
 
-## 🎨 Design Philosophy
+##  Design Philosophy
 
 - **Earthy & Warm** — Inspired by Linear and Untitled UI's clean aesthetic
 - **No Fake Features** — Every button, tab, and function is real and working
@@ -247,7 +247,7 @@ flowchart LR
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
