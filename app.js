@@ -7,6 +7,18 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ─── Anonymous User Isolation ────────────
+// Each browser gets a unique ID — users only see their own data
+function getUserId() {
+  let id = localStorage.getItem('hh_user_id');
+  if (!id) {
+    id = crypto.randomUUID ? crypto.randomUUID() : 'u-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    localStorage.setItem('hh_user_id', id);
+  }
+  return id;
+}
+const userId = getUserId();
+
 // ─── Helpers ─────────────────────────────
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -685,7 +697,8 @@ async function saveAnalysis(text, claims) {
     total_claims: claims.length,
     verified_count: vCount,
     unverifiable_count: uCount,
-    false_count: fCount
+    false_count: fCount,
+    user_id: userId
   }).select().single();
 
   if (aErr) { console.error('Save analysis error:', aErr); throw aErr; }
@@ -697,7 +710,8 @@ async function saveAnalysis(text, claims) {
     confidence: c.confidence,
     explanation: c.explanation,
     source_name: c.source,
-    source_url: c.sourceUrl
+    source_url: c.sourceUrl,
+    user_id: userId
   }));
 
   const { error: cErr } = await db.from('claims').insert(claimRows);
@@ -714,7 +728,7 @@ async function loadHistory() {
   const detail = $('#history-detail');
   detail.classList.add('hidden');
 
-  const { data, error } = await db.from('analyses').select('*').order('created_at', { ascending: false });
+  const { data, error } = await db.from('analyses').select('*').eq('user_id', userId).order('created_at', { ascending: false });
   if (error) { showToast('Failed to load history', 'error'); console.error(error); return; }
 
   list.innerHTML = '';
@@ -757,7 +771,7 @@ async function loadHistory() {
     row.querySelector('.history-delete').addEventListener('click', async (e) => {
       e.stopPropagation();
       if (!confirm('Delete this analysis?')) return;
-      const { error } = await db.from('analyses').delete().eq('id', a.id);
+      const { error } = await db.from('analyses').delete().eq('id', a.id).eq('user_id', userId);
       if (error) { showToast('Delete failed', 'error'); return; }
       showToast('Analysis deleted', 'success');
       loadHistory();
@@ -845,7 +859,7 @@ $('#btn-back-history').addEventListener('click', () => {
 
 $('#btn-clear-history').addEventListener('click', async () => {
   if (!confirm('Delete ALL analysis history? This cannot be undone.')) return;
-  const { error } = await db.from('analyses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const { error } = await db.from('analyses').delete().eq('user_id', userId);
   if (error) { showToast('Failed to clear history', 'error'); return; }
   showToast('History cleared', 'success');
   loadHistory();
@@ -858,7 +872,7 @@ $('#btn-clear-history').addEventListener('click', async () => {
 async function loadSources() {
   const list = $('#sources-list');
 
-  const { data, error } = await db.from('claims').select('source_name, source_url, status');
+  const { data, error } = await db.from('claims').select('source_name, source_url, status').eq('user_id', userId);
   if (error) { showToast('Failed to load sources', 'error'); return; }
 
   if (!data || data.length === 0) {
@@ -907,7 +921,7 @@ async function loadSources() {
 // ═══════════════════════════════════════════
 
 async function loadSettings() {
-  const { data, error } = await db.from('settings').select('*');
+  const { data, error } = await db.from('settings').select('*').eq('user_id', userId);
   if (error) { console.error('Load settings error:', error); return; }
   if (!data) return;
 
@@ -931,7 +945,8 @@ $('#btn-save-settings').addEventListener('click', async () => {
   ];
 
   for (const s of settings) {
-    const { error } = await db.from('settings').upsert({ key: s.key, value: s.value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    await db.from('settings').delete().eq('key', s.key).eq('user_id', userId);
+    const { error } = await db.from('settings').insert({ key: s.key, value: s.value, user_id: userId, updated_at: new Date().toISOString() });
     if (error) { showToast('Failed to save: ' + s.key, 'error'); console.error(error); return; }
   }
   showToast('Settings saved', 'success');
@@ -943,8 +958,8 @@ async function checkDbStatus() {
   const claimsCountEl = $('#db-claims-count');
 
   try {
-    const { count: aCount, error: aErr } = await db.from('analyses').select('*', { count: 'exact', head: true });
-    const { count: cCount, error: cErr } = await db.from('claims').select('*', { count: 'exact', head: true });
+    const { count: aCount, error: aErr } = await db.from('analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    const { count: cCount, error: cErr } = await db.from('claims').select('*', { count: 'exact', head: true }).eq('user_id', userId);
 
     if (aErr || cErr) throw new Error('Query failed');
 
@@ -966,9 +981,9 @@ async function checkDbStatus() {
 
 async function loadDashboardStats() {
   try {
-    const { count: totalAnalyses } = await db.from('analyses').select('*', { count: 'exact', head: true });
-    const { data: analyses } = await db.from('analyses').select('trust_score, verified_count, total_claims');
-    const { count: totalClaims } = await db.from('claims').select('*', { count: 'exact', head: true });
+    const { count: totalAnalyses } = await db.from('analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+    const { data: analyses } = await db.from('analyses').select('trust_score, verified_count, total_claims').eq('user_id', userId);
+    const { count: totalClaims } = await db.from('claims').select('*', { count: 'exact', head: true }).eq('user_id', userId);
 
     const avgScore = analyses && analyses.length > 0
       ? Math.round(analyses.reduce((s, a) => s + (a.trust_score || 0), 0) / analyses.length)
@@ -1395,6 +1410,7 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
       const { data: analyses, error: aErr } = await db
         .from('analyses')
         .select('id, input_text, trust_score, created_at')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -1408,6 +1424,7 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
       const { data: claims, error: cErr } = await db
         .from('claims')
         .select('id, analysis_id, claim_text, status, confidence, explanation, source_url, source_name, created_at')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(100);
 
