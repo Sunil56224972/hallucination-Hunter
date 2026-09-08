@@ -3,13 +3,19 @@
 // Security: Rate limiting, Input validation, CORS, Size limits
 // ═══════════════════════════════════════════════════════════════
 
-// In-memory rate limiter (resets on cold start — good enough for serverless)
 const rateLimit = new Map();
 
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 10;      // 10 requests per minute per IP
-const MAX_BODY_SIZE_BYTES = 50 * 1024;   // 50 KB max request body
-const MAX_PROMPT_LENGTH = 20000;         // 20,000 chars max
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const MAX_BODY_SIZE_BYTES = 50 * 1024;
+const MAX_PROMPT_LENGTH = 20000;
+
+// Allowed origins (vercel.app subdomains + localhost for dev)
+const ALLOWED_ORIGINS = [
+  /^https:\/\/hallucination-hunter[a-z0-9\-]*\.vercel\.app$/,
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/
+];
 
 function getRateLimitKey(req) {
   return (
@@ -22,35 +28,33 @@ function getRateLimitKey(req) {
 function checkRateLimit(ip) {
   const now = Date.now();
   const record = rateLimit.get(ip);
-
   if (!record || now - record.windowStart > RATE_LIMIT_WINDOW_MS) {
     rateLimit.set(ip, { windowStart: now, count: 1 });
     return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 };
   }
-
   if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
     const retryAfter = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - record.windowStart)) / 1000);
     return { allowed: false, retryAfter };
   }
-
   record.count++;
   return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count };
 }
 
-function setSecurityHeaders(res) {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // Only allow requests from our own domain
-  res.setHeader('Access-Control-Allow-Origin', 'https://hallucination-hunter-five.vercel.app');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Vary', 'Origin');
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // Allow no-origin (same-origin requests)
+  return ALLOWED_ORIGINS.some(pattern => pattern.test(origin));
 }
 
 export default async function handler(req, res) {
-  setSecurityHeaders(res);
+  const origin = req.headers['origin'] || '';
+
+  // Set CORS header dynamically — only echo back allowed origins
+  if (isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -65,13 +69,12 @@ export default async function handler(req, res) {
   // ── Rate Limiting ──────────────────────────────────────────────
   const ip = getRateLimitKey(req);
   const limit = checkRateLimit(ip);
-
   res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX_REQUESTS);
   res.setHeader('X-RateLimit-Remaining', limit.remaining ?? 0);
 
   if (!limit.allowed) {
     return res.status(429).json({
-      error: `Too many requests. Please wait ${limit.retryAfter} seconds before trying again.`,
+      error: `Too many requests. Please wait ${limit.retryAfter}s before trying again.`,
       retryAfter: limit.retryAfter
     });
   }
@@ -79,32 +82,28 @@ export default async function handler(req, res) {
   // ── Request Size Limit ─────────────────────────────────────────
   const bodyStr = JSON.stringify(req.body || {});
   if (bodyStr.length > MAX_BODY_SIZE_BYTES) {
-    return res.status(413).json({ error: 'Request too large. Maximum 50KB allowed.' });
+    return res.status(413).json({ error: 'Request too large. Max 50KB.' });
   }
 
   // ── Input Validation ───────────────────────────────────────────
   const { model, messages, temperature, max_tokens } = req.body || {};
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    return res.status(400).json({ error: 'Invalid request: messages array required.' });
+    return res.status(400).json({ error: 'Invalid request: messages required.' });
   }
 
-  // Validate each message
   for (const msg of messages) {
     if (!msg.role || !msg.content || typeof msg.content !== 'string') {
       return res.status(400).json({ error: 'Invalid message format.' });
     }
-    // Prevent excessively long prompts
     if (msg.content.length > MAX_PROMPT_LENGTH) {
-      return res.status(400).json({ error: `Message too long. Maximum ${MAX_PROMPT_LENGTH} characters allowed.` });
+      return res.status(400).json({ error: `Message too long. Max ${MAX_PROMPT_LENGTH} chars.` });
     }
-    // Only allow safe roles
     if (!['system', 'user', 'assistant'].includes(msg.role)) {
       return res.status(400).json({ error: 'Invalid message role.' });
     }
   }
 
-  // Whitelist allowed models only
   const ALLOWED_MODELS = [
     'llama-3.3-70b-versatile',
     'llama-3.1-8b-instant',
@@ -142,11 +141,9 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-
     if (!response.ok) {
       return res.status(response.status).json({ error: `Groq API error (${response.status}): ${JSON.stringify(data)}` });
     }
-
     return res.status(200).json(data);
   } catch (err) {
     console.error('[groq proxy] error:', err.message);
