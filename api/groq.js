@@ -105,11 +105,13 @@ export default async function handler(req, res) {
   }
 
   const ALLOWED_MODELS = [
-    'llama-3.3-70b-versatile',
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
     'llama-3.1-8b-instant',
-    'llama3-70b-8192',
-    'mixtral-8x7b-32768',
-    'gemma2-9b-it'
+    'qwen/qwen3.6-27b',
+    'qwen/qwen3.8-27b',
+    'groq/compound',
+    'groq/compound-mini'
   ];
   if (model && !ALLOWED_MODELS.includes(model)) {
     return res.status(400).json({ error: 'Model not allowed.' });
@@ -124,7 +126,7 @@ export default async function handler(req, res) {
   // ── Proxy to Groq ──────────────────────────────────────────────
   try {
     const safeBody = {
-      model: model || 'llama-3.3-70b-versatile',
+      model: model || 'openai/gpt-oss-120b', // updated from deprecated llama-3.3-70b-versatile
       messages,
       temperature: typeof temperature === 'number' ? Math.min(Math.max(temperature, 0), 1) : 0.3,
       max_tokens: typeof max_tokens === 'number' ? Math.min(max_tokens, 4096) : 2048,

@@ -211,7 +211,7 @@ document.addEventListener('mousemove', e => {
 // - Vercel deployment → calls /api/groq (serverless proxy, key hidden server-side)
 // - Local dev → calls Groq directly using config.js key
 const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'openai/gpt-oss-120b'; // updated: llama-3.3-70b-versatile was shut down Aug 16 2026
 
 async function callGroq(messages, temperature = 0.1) {
   const body = { model: GROQ_MODEL, messages, temperature, response_format: { type: 'json_object' } };
