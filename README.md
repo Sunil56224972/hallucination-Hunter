@@ -17,7 +17,17 @@
 
 ---
 
-![Hallucination Hunter Screenshot](screenshots/app-main.png)
+### 📊 Dashboard & Input
+![Hallucination Hunter — Main Dashboard](screenshots/app-main.png)
+
+### ✍️ Example Claims Loaded
+![Example text loaded for analysis](screenshots/app-example.png)
+
+### 🔗 Trusted Source Directory
+![Curated source directory with 50+ verified references](screenshots/app-sources.png)
+
+### ⚙️ How the Pipeline Works
+![Three-stage verification pipeline explained](screenshots/app-howitworks.png)
 
 ##  The Problem
 
@@ -208,7 +218,10 @@ hallucination-Hunter/
 ├── incorrect-icon.png  # ❌ False claim icon
 ├── unverifiable-icon.png # ⚠️ Unverifiable claim icon
 ├── screenshots/        # App screenshots for README
-│   └── app-main.png
+│   ├── app-main.png
+│   ├── app-example.png
+│   ├── app-sources.png
+│   └── app-howitworks.png
 └── README.md
 ```
 
