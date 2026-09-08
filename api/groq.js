@@ -131,6 +131,11 @@ export default async function handler(req, res) {
       stream: false
     };
 
+    // Pass through response_format if client requests JSON mode
+    if (req.body.response_format) {
+      safeBody.response_format = { type: 'json_object' };
+    }
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
