@@ -1939,34 +1939,34 @@ body {
     justify-content: center;
   }
 
-  /* Input bar: stacked on mobile */
+  /* Input bar: compact single row on mobile */
   .input-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    padding: 0;
-  }
-
-  /* Top row: Batch + Clear */
-  .input-actions {
-    flex-wrap: nowrap;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 10px;
     gap: 4px;
-    padding: 8px 12px;
-    width: 100%;
-    box-sizing: border-box;
-    justify-content: flex-start;
-    border-top: 1px solid var(--border-light);
   }
 
-  /* Analyze button: its own full-width row */
+  .input-actions {
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Compact buttons */
+  .btn-text {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
   #btn-analyze {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    padding: 14px;
-    font-size: 0.9rem;
-    border-radius: 0 0 var(--r-lg) var(--r-lg);
-    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  /* Hide "claims" word — just say "Analyze" */
+  .btn-label-full {
+    display: none;
   }
 
   /* Hide Load example + char count on mobile */
@@ -1976,7 +1976,8 @@ body {
   }
 
   .batch-toggle {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+    padding: 4px 6px;
   }
 
   /* Page header */
