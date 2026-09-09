@@ -169,15 +169,6 @@ btnAnalyze.addEventListener('click', () => {
   const text = input.value.trim();
   if (!text) { showToast('Paste some text first', 'error'); return; }
   if (text.length < 30) { showToast('Text too short — need at least 30 characters', 'error'); return; }
-  // If no API key (Vercel deployment), ask once and save forever
-  if (!GROQ_API_KEY && !window._groqKey) {
-    const key = prompt('One-time setup: Enter your Groq API key (free at console.groq.com):');
-    if (!key) return;
-    window._groqKey = key;
-    localStorage.setItem('groq_api_key', key);
-    location.reload();
-    return;
-  }
   runAnalysis(text);
 });
 
@@ -204,18 +195,32 @@ document.addEventListener('mousemove', e => {
 // GROQ API — Real LLM Verification Engine
 // ═══════════════════════════════════════════
 
-// GROQ_API_KEY: loaded from config.js (local) → localStorage (deployed)
-// config.js is gitignored, sets window.GROQ_API_KEY before app.js runs
-// For Vercel: key is saved to localStorage after first entry
-const GROQ_API_KEY = window.GROQ_API_KEY || localStorage.getItem('groq_api_key') || '';
+// Smart API routing:
+// - Vercel deployment → calls /api/groq (serverless proxy, key hidden server-side)
+// - Local dev → calls Groq directly using config.js key
+const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function callGroq(messages, temperature = 0.1) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.GROQ_API_KEY}` },
-    body: JSON.stringify({ model: GROQ_MODEL, messages, temperature, response_format: { type: 'json_object' } })
-  });
+  const body = { model: GROQ_MODEL, messages, temperature, response_format: { type: 'json_object' } };
+  let res;
+
+  if (IS_LOCAL && window.GROQ_API_KEY) {
+    // Local dev: call Groq directly with config.js key
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.GROQ_API_KEY}` },
+      body: JSON.stringify(body)
+    });
+  } else {
+    // Vercel: call serverless proxy (API key stored as env var)
+    res = await fetch('/api/groq', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  }
+
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Groq API error (${res.status}): ${err}`);
