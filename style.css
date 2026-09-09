@@ -2729,3 +2729,112 @@ html {
   .stat-card { padding: 12px 10px; }
   .stat-val { font-size: 1.1rem; }
 }
+
+/* --- API Key Modal --- */
+.api-key-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.api-key-modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 32px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.api-key-modal h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-900);
+  margin-bottom: 8px;
+}
+
+.api-key-modal p {
+  font-size: 0.87rem;
+  color: var(--text-400);
+  margin-bottom: 6px;
+}
+
+.api-key-link {
+  font-size: 0.82rem;
+  color: var(--green);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.api-key-link:hover {
+  text-decoration: underline;
+}
+
+.api-key-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-900);
+  font-size: 0.9rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+
+.api-key-input:focus {
+  border-color: var(--green);
+}
+
+.api-key-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.api-key-save {
+  flex: 1;
+  padding: 10px 18px;
+  background: var(--text-900);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: 0.87rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.api-key-save:hover {
+  opacity: 0.85;
+}
+
+.api-key-cancel {
+  padding: 10px 18px;
+  background: transparent;
+  color: var(--text-400);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-size: 0.87rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.api-key-cancel:hover {
+  background: var(--surface);
+}
