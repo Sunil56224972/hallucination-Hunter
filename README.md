@@ -19,26 +19,26 @@
 
 ![Hallucination Hunter Screenshot](screenshots/app-main.png)
 
-## ⚡ The Problem
+##  The Problem
 
 Large Language Models (LLMs) generate confident-sounding text that may contain **factual errors, outdated information, or complete fabrications** — known as *hallucinations*. There's no easy way to verify which parts of an AI response are accurate and which are not.
 
-## 💡 The Solution
+##  The Solution
 
 **Hallucination Hunter** breaks down AI-generated text into individual, verifiable claims and fact-checks each one independently using LLM-powered verification with source attribution.
 
 ---
 
-## ✨ Features
+##  Features
 
 ### Core Functionality
 | Feature | Description |
 |---------|-------------|
-| 🧠 **Claim Extraction** | Automatically splits text into atomic, verifiable factual claims |
-| ✅ **Multi-Claim Verification** | Each claim is independently verified against real-world knowledge |
-| 📊 **Trust Score** | Overall reliability score (0-100%) based on verified vs false claims |
-| 🔗 **Source Attribution** | Every verification includes source URLs and explanations |
-| 📝 **Annotated Text** | Original text highlighted with inline verification results |
+|  **Claim Extraction** | Automatically splits text into atomic, verifiable factual claims |
+|  **Multi-Claim Verification** | Each claim is independently verified against real-world knowledge |
+|  **Trust Score** | Overall reliability score (0-100%) based on verified vs false claims |
+|  **Source Attribution** | Every verification includes source URLs and explanations |
+|  **Annotated Text** | Original text highlighted with inline verification results |
 
 ### Application Features
 | Feature | Description |
@@ -60,7 +60,7 @@ Large Language Models (LLMs) generate confident-sounding text that may contain *
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -109,7 +109,7 @@ Large Language Models (LLMs) generate confident-sounding text that may contain *
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -196,7 +196,7 @@ Open `http://localhost:8080` in your browser.
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 hallucination-Hunter/
@@ -253,7 +253,7 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Feel free to:
 
