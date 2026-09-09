@@ -165,12 +165,19 @@ btnExample.addEventListener('click', () => {
   showToast('Example loaded — click Analyze', 'info');
 });
 
-btnAnalyze.addEventListener('click', async () => {
+btnAnalyze.addEventListener('click', () => {
   const text = input.value.trim();
   if (!text) { showToast('Paste some text first', 'error'); return; }
   if (text.length < 30) { showToast('Text too short — need at least 30 characters', 'error'); return; }
-  const hasKey = await ensureApiKey();
-  if (!hasKey) return;
+  // If no API key (Vercel deployment), ask once and save forever
+  if (!GROQ_API_KEY && !window._groqKey) {
+    const key = prompt('One-time setup: Enter your Groq API key (free at console.groq.com):');
+    if (!key) return;
+    window._groqKey = key;
+    localStorage.setItem('groq_api_key', key);
+    location.reload();
+    return;
+  }
   runAnalysis(text);
 });
 
@@ -197,52 +204,10 @@ document.addEventListener('mousemove', e => {
 // GROQ API — Real LLM Verification Engine
 // ═══════════════════════════════════════════
 
-// GROQ_API_KEY: loaded from config.js (local dev) or localStorage (deployed)
-// No more annoying prompt() on page load
-if (!window.GROQ_API_KEY) {
-  window.GROQ_API_KEY = localStorage.getItem('groq_api_key') || '';
-}
-
-function ensureApiKey() {
-  if (window.GROQ_API_KEY) return true;
-  // Show a themed modal instead of ugly browser prompt
-  const overlay = document.createElement('div');
-  overlay.className = 'api-key-overlay';
-  overlay.innerHTML = `
-    <div class="api-key-modal">
-      <h3>🔑 API Key Required</h3>
-      <p>Enter your free Groq API key to enable claim verification.</p>
-      <a href="https://console.groq.com" target="_blank" class="api-key-link">Get a free key at console.groq.com →</a>
-      <input type="password" id="apiKeyInput" placeholder="gsk_..." class="api-key-input" />
-      <div class="api-key-actions">
-        <button id="apiKeySave" class="api-key-save">Save & Continue</button>
-        <button id="apiKeyCancel" class="api-key-cancel">Cancel</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  const input = document.getElementById('apiKeyInput');
-  input.focus();
-  return new Promise(resolve => {
-    document.getElementById('apiKeySave').onclick = () => {
-      const key = input.value.trim();
-      if (key) {
-        window.GROQ_API_KEY = key;
-        localStorage.setItem('groq_api_key', key);
-        overlay.remove();
-        resolve(true);
-      }
-    };
-    document.getElementById('apiKeyCancel').onclick = () => {
-      overlay.remove();
-      resolve(false);
-    };
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') document.getElementById('apiKeySave').click();
-      if (e.key === 'Escape') document.getElementById('apiKeyCancel').click();
-    });
-  });
-}
+// GROQ_API_KEY: loaded from config.js (local) → localStorage (deployed)
+// config.js is gitignored, sets window.GROQ_API_KEY before app.js runs
+// For Vercel: key is saved to localStorage after first entry
+const GROQ_API_KEY = window.GROQ_API_KEY || localStorage.getItem('groq_api_key') || '';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function callGroq(messages, temperature = 0.1) {
