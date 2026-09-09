@@ -13,3 +13,4 @@ desktop.ini
 # Environment
 .env
 .env.local
+config.js

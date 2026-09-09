@@ -50,8 +50,8 @@ function showToast(message, type = 'info') {
 
 $$('.sidebar-link').forEach(link => {
   link.addEventListener('click', e => {
-    e.preventDefault();
     if (!link.dataset.view) return;
+    e.preventDefault();
     $$('.sidebar-link').forEach(l => l.classList.remove('active'));
     $$('.view').forEach(v => v.classList.remove('active'));
     link.classList.add('active');
@@ -195,17 +195,17 @@ document.addEventListener('mousemove', e => {
 // GROQ API — Real LLM Verification Engine
 // ═══════════════════════════════════════════
 
-let GROQ_API_KEY = localStorage.getItem('groq_api_key') || '';
-if (!GROQ_API_KEY) {
-  GROQ_API_KEY = prompt('Enter your Groq API key (get one free at console.groq.com):') || '';
-  if (GROQ_API_KEY) localStorage.setItem('groq_api_key', GROQ_API_KEY);
+// GROQ_API_KEY is loaded from config.js (gitignored)
+// Fallback: prompt user if config.js is missing
+if (!window.GROQ_API_KEY) {
+  window.GROQ_API_KEY = prompt('Enter your Groq API key (get one free at console.groq.com):') || '';
 }
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function callGroq(messages, temperature = 0.1) {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.GROQ_API_KEY}` },
     body: JSON.stringify({ model: GROQ_MODEL, messages, temperature, response_format: { type: 'json_object' } })
   });
   if (!res.ok) {
@@ -272,6 +272,7 @@ For each claim provide:
   - "https://en.wikipedia.org" for Wikipedia
   - "https://www.cdc.gov" for CDC
   DO NOT invent URLs. If unsure, set to null.
+- **category**: One of: "Science", "History", "Geography", "Technology", "Health", "Mathematics", "Politics", "Culture", "Economics", "General"
 
 Respond in JSON:
 {
@@ -282,7 +283,8 @@ Respond in JSON:
       "confidence": 85,
       "explanation": "Specific explanation with real facts...",
       "source": "Source name",
-      "sourceUrl": "https://www.example.org"
+      "sourceUrl": "https://www.example.org",
+      "category": "History"
     }
   ]
 }`
@@ -395,7 +397,8 @@ async function runAnalysis(text) {
         confidence: confidence,
         explanation: v.explanation || 'Could not verify this claim.',
         source: v.source || 'No source available',
-        sourceUrl: v.sourceUrl || null
+        sourceUrl: v.sourceUrl || null,
+        category: v.category || 'General'
       };
     });
 
@@ -405,6 +408,7 @@ async function runAnalysis(text) {
     // Save to Supabase
     await saveAnalysis(text, verified);
     showToast('Analysis saved to database', 'success');
+    loadDashboardStats();
   } catch (err) {
     console.error('Analysis error:', err);
     showToast('Analysis failed: ' + err.message, 'error');
@@ -540,6 +544,7 @@ function buildCards(claims) {
         <label class="toggle"><input type="checkbox" ${isOn ? 'checked' : ''} disabled><span class="toggle-slider"></span></label>
       </div>
       <p class="claim-desc">${escapeHtml(c.text)}</p>
+      <div class="claim-tags"><span class="claim-tag ${(c.category || 'General').toLowerCase()}">${escapeHtml(c.category || 'General')}</span></div>
       <div class="claim-card-bottom"><button class="view-detail-btn">View details</button></div>
     `;
 
@@ -560,6 +565,10 @@ function buildCards(claims) {
       btn.textContent = detail.classList.contains('hidden') ? 'View details' : 'Hide details';
     });
     claimsGrid.appendChild(card);
+
+    // Stagger icon animation delay
+    const badgeIcon = card.querySelector('.badge-icon');
+    if (badgeIcon) badgeIcon.style.animationDelay = `${i * 0.15}s`;
   });
 }
 
@@ -861,6 +870,284 @@ async function checkDbStatus() {
 }
 
 // ═══════════════════════════════════════════
+// FEATURE: Dashboard Stats
+// ═══════════════════════════════════════════
+
+async function loadDashboardStats() {
+  try {
+    const { count: totalAnalyses } = await db.from('analyses').select('*', { count: 'exact', head: true });
+    const { data: analyses } = await db.from('analyses').select('trust_score, verified_count, total_claims');
+    const { count: totalClaims } = await db.from('claims').select('*', { count: 'exact', head: true });
+
+    const avgScore = analyses && analyses.length > 0
+      ? Math.round(analyses.reduce((s, a) => s + (a.trust_score || 0), 0) / analyses.length)
+      : 0;
+
+    const totalVerified = analyses ? analyses.reduce((s, a) => s + (a.verified_count || 0), 0) : 0;
+    const totalClaimsAll = analyses ? analyses.reduce((s, a) => s + (a.total_claims || 0), 0) : 0;
+    const accuracy = totalClaimsAll > 0 ? Math.round((totalVerified / totalClaimsAll) * 100) : 0;
+
+    animateNum('dash-total', totalAnalyses || 0);
+    animateNum('dash-claims', totalClaims || 0);
+
+    // Animate score with % suffix
+    const avgEl = $('#dash-avg-score');
+    const accEl = $('#dash-accuracy');
+    animateNumWithSuffix(avgEl, avgScore, '%');
+    animateNumWithSuffix(accEl, accuracy, '%');
+  } catch (e) {
+    console.warn('Dashboard stats error:', e);
+  }
+}
+
+function animateNumWithSuffix(el, target, suffix) {
+  const dur = 700;
+  const t0 = performance.now();
+  function tick(now) {
+    const t = Math.min((now - t0) / dur, 1);
+    const val = Math.round(target * (1 - Math.pow(1 - t, 3)));
+    el.innerHTML = val + `<span class="stat-unit">${suffix}</span>`;
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════
+// FEATURE: Voice Input
+// ═══════════════════════════════════════════
+
+(() => {
+  const micBtn = $('#btn-mic');
+  if (!micBtn) return;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    micBtn.title = 'Voice input not supported in this browser';
+    micBtn.style.opacity = '0.4';
+    micBtn.style.pointerEvents = 'none';
+    return;
+  }
+
+  let recognition = null;
+  let isRecording = false;
+
+  micBtn.addEventListener('click', () => {
+    if (isRecording) {
+      recognition.stop();
+      return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    let finalTranscript = input.value;
+
+    recognition.onstart = () => {
+      isRecording = true;
+      micBtn.classList.add('recording');
+      showToast('Listening... speak now', 'info');
+    };
+
+    recognition.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? ' ' : '') + e.results[i][0].transcript;
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      input.value = finalTranscript + (interim ? ' ' + interim : '');
+      charCount.textContent = input.value.length;
+    };
+
+    recognition.onend = () => {
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      showToast('Voice input stopped', 'success');
+    };
+
+    recognition.onerror = (e) => {
+      isRecording = false;
+      micBtn.classList.remove('recording');
+      if (e.error !== 'aborted') showToast('Voice error: ' + e.error, 'error');
+    };
+
+    recognition.start();
+  });
+})();
+
+// ═══════════════════════════════════════════
+// FEATURE: Export PDF
+// ═══════════════════════════════════════════
+
+$('#btn-export')?.addEventListener('click', () => {
+  if (!currentClaims.length) { showToast('No results to export', 'error'); return; }
+  window.print();
+  showToast('Print dialog opened', 'info');
+});
+
+// ═══════════════════════════════════════════
+// FEATURE: Copy Annotated Text
+// ═══════════════════════════════════════════
+
+$('#btn-copy')?.addEventListener('click', async () => {
+  if (!currentClaims.length) { showToast('No results to copy', 'error'); return; }
+
+  const labels = { verified: '✅ VERIFIED', unverifiable: '❓ UNVERIFIABLE', false: '❌ INCORRECT' };
+  let text = '═══ HALLUCINATION HUNTER REPORT ═══\n\n';
+
+  const total = currentClaims.length;
+  const vCount = currentClaims.filter(c => c.status === 'verified').length;
+  const trustScore = Math.round((vCount / total) * 100);
+  text += `Trust Score: ${trustScore}% | ${total} claims analyzed\n`;
+  text += `Verified: ${vCount} | Unverifiable: ${currentClaims.filter(c => c.status === 'unverifiable').length} | Incorrect: ${currentClaims.filter(c => c.status === 'false').length}\n\n`;
+
+  currentClaims.forEach((c, i) => {
+    text += `${i + 1}. [${labels[c.status]}] (${c.confidence}%)\n`;
+    text += `   "${c.text}"\n`;
+    text += `   → ${c.explanation}\n`;
+    text += `   Source: ${c.source}\n\n`;
+  });
+
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Results copied to clipboard', 'success');
+  } catch {
+    showToast('Failed to copy', 'error');
+  }
+});
+
+// ═══════════════════════════════════════════
+// FEATURE: Share Analysis
+// ═══════════════════════════════════════════
+
+$('#btn-share')?.addEventListener('click', async () => {
+  if (!currentClaims.length) { showToast('No results to share', 'error'); return; }
+
+  const shareData = {
+    claims: currentClaims.map(c => ({
+      t: c.text, s: c.status, c: c.confidence, e: c.explanation, src: c.source
+    }))
+  };
+
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(shareData))));
+    const url = window.location.origin + window.location.pathname + '#share=' + encoded;
+
+    if (url.length > 8000) {
+      showToast('Analysis too large to share via URL — use Copy instead', 'error');
+      return;
+    }
+
+    await navigator.clipboard.writeText(url);
+    showToast('Share link copied to clipboard!', 'success');
+  } catch {
+    showToast('Failed to generate share link', 'error');
+  }
+});
+
+// Load shared analysis from URL hash
+function loadSharedAnalysis() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#share=')) return;
+
+  try {
+    const encoded = hash.slice(7);
+    const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    if (data.claims && data.claims.length) {
+      const claims = data.claims.map((c, i) => ({
+        id: i + 1, text: c.t, originalText: c.t, status: c.s,
+        confidence: c.c, explanation: c.e, source: c.src, sourceUrl: null
+      }));
+      currentClaims = claims;
+      displayResults(claims.map(c => c.text).join('. '), claims);
+      showToast('Shared analysis loaded', 'info');
+      window.location.hash = '';
+    }
+  } catch (e) {
+    console.warn('Failed to load shared analysis:', e);
+  }
+}
+
+// ═══════════════════════════════════════════
+// FEATURE: Batch Analysis
+// ═══════════════════════════════════════════
+
+// Override analyze button to support batch mode
+const originalAnalyzeHandler = btnAnalyze.onclick;
+btnAnalyze.addEventListener('click', async (e) => {
+  const batchMode = $('#batch-mode')?.checked;
+  if (!batchMode) return; // Normal flow handles it
+
+  e.stopImmediatePropagation();
+  const text = input.value.trim();
+  if (!text) { showToast('Paste some text first', 'error'); return; }
+
+  const texts = text.split(/\n---\n/).map(t => t.trim()).filter(t => t.length >= 30);
+  if (texts.length <= 1) {
+    showToast('Use --- on a new line to separate texts for batch mode', 'error');
+    return;
+  }
+
+  showToast(`Batch mode: analyzing ${texts.length} texts...`, 'info');
+
+  let allClaims = [];
+  for (let i = 0; i < texts.length; i++) {
+    showToast(`Analyzing text ${i + 1} of ${texts.length}...`, 'info');
+    try {
+      results.classList.add('hidden');
+      processing.classList.remove('hidden');
+      btnAnalyze.disabled = true;
+
+      $$('.process-step').forEach(s => { s.classList.remove('active', 'done'); s.querySelector('.ps-status').innerHTML = ''; });
+
+      await animateStepStart('ps-extract');
+      const rawClaims = await extractClaimsFromLLM(texts[i]);
+      await animateStepDone('ps-extract', 0, 33);
+
+      await animateStepStart('ps-search');
+      await delay(300);
+      await animateStepDone('ps-search', 33, 66);
+
+      await animateStepStart('ps-verify');
+      const verifyResults = await verifyClaimsWithLLM(rawClaims);
+      await animateStepDone('ps-verify', 66, 100);
+
+      const confThreshold = parseInt($('#s-conf-range')?.value || '75', 10);
+      const verified = rawClaims.map(c => {
+        const v = verifyResults.find(r => r.id === c.id) || {};
+        let status = v.status || 'unverifiable';
+        let confidence = v.confidence || 30;
+        if (status === 'verified' && confidence < confThreshold) status = 'unverifiable';
+        return {
+          id: allClaims.length + c.id,
+          text: c.text, originalText: c.originalSentence || c.text,
+          status, confidence,
+          explanation: v.explanation || 'Could not verify.',
+          source: v.source || 'No source', sourceUrl: v.sourceUrl || null
+        };
+      });
+      allClaims = allClaims.concat(verified);
+    } catch (err) {
+      showToast(`Batch ${i + 1} failed: ${err.message}`, 'error');
+    }
+  }
+
+  currentClaims = allClaims;
+  displayResults(texts.join('\n\n---\n\n'), allClaims);
+  btnAnalyze.disabled = false;
+  processing.classList.add('hidden');
+  showToast(`Batch complete: ${allClaims.length} claims from ${texts.length} texts`, 'success');
+
+  // Save combined result
+  try { await saveAnalysis(texts.join('\n---\n'), allClaims); } catch(e) { console.warn(e); }
+  loadDashboardStats();
+}, true); // capture phase to intercept before normal handler
+
+// ═══════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════
 
@@ -873,13 +1160,18 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 // ═══════════════════════════════════════════
 
 (async () => {
-  // Check DB connection quietly on load
   try {
     await db.from('settings').select('key').limit(1);
     console.log('Supabase connected');
   } catch (e) {
     console.warn('Supabase connection issue:', e);
   }
+
+  // Load dashboard stats on page load
+  loadDashboardStats();
+
+  // Check for shared analysis in URL
+  loadSharedAnalysis();
 })();
 
 // ═══════════════════════════════════════════

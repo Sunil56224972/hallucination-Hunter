@@ -50,11 +50,9 @@
       </nav>
     </div>
     <div class="sidebar-bottom">
-      <a href="#" class="sidebar-link" title="Help" data-view="info">
+      <a href="https://github.com/Sunil56224972/hallucination-Hunter" target="_blank" class="sidebar-link" title="GitHub Repository">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
+          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
         </svg>
       </a>
     </div>
@@ -108,16 +106,43 @@
 
       <!-- Sub-tab: Verify text -->
       <div class="subtab-content active" id="subtab-verify">
+        <!-- Dashboard Stats -->
+        <div class="dashboard-stats" id="dashboard-stats">
+          <div class="stat-card">
+            <div class="stat-val" id="dash-total">0</div>
+            <div class="stat-label">Total Analyses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="dash-avg-score">0<span class="stat-unit">%</span></div>
+            <div class="stat-label">Avg Trust Score</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="dash-claims">0</div>
+            <div class="stat-label">Claims Checked</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="dash-accuracy">0<span class="stat-unit">%</span></div>
+            <div class="stat-label">Accuracy Rate</div>
+          </div>
+        </div>
         <div class="content-section">
           <div class="section-label">
             <h2>Paste any LLM-generated text</h2>
             <p>We'll extract every factual claim, cross-reference it against trusted sources, and surface what's verified, unverifiable, or incorrect.</p>
           </div>
           <div class="input-card">
-            <textarea id="llm-input" placeholder="Paste AI-generated text here..." spellcheck="false"></textarea>
+            <div class="textarea-wrap">
+              <textarea id="llm-input" placeholder="Paste AI-generated text here..." spellcheck="false"></textarea>
+              <button class="mic-btn" id="btn-mic" title="Voice input">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+            </div>
             <div class="input-bar">
               <span class="char-indicator"><span id="char-count">0</span> chars</span>
               <div class="input-actions">
+                <label class="batch-toggle" title="Separate texts with --- for batch analysis">
+                  <input type="checkbox" id="batch-mode"> Batch
+                </label>
                 <button class="btn-text" id="btn-clear">Clear</button>
                 <button class="btn-text" id="btn-example">Load example</button>
                 <button class="btn-solid" id="btn-analyze">
@@ -156,6 +181,22 @@
 
         <!-- Results -->
         <div class="results hidden" id="results">
+          <div class="results-toolbar">
+            <div class="results-actions">
+              <button class="action-btn" id="btn-export" title="Export as PDF">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Export PDF
+              </button>
+              <button class="action-btn" id="btn-copy" title="Copy results">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+              <button class="action-btn" id="btn-share" title="Share analysis">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Share
+              </button>
+            </div>
+          </div>
           <div class="summary-row">
             <div class="summary-pill"><span class="pill-num" id="s-total">0</span><span class="pill-label">claims</span></div>
             <div class="summary-pill pill-verified">
@@ -436,6 +477,7 @@
     </div>
   </nav>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
