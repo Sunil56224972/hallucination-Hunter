@@ -102,7 +102,6 @@
         <button class="tab active" data-subtab="verify">Verify text</button>
         <button class="tab" data-subtab="how">How it works</button>
         <button class="tab" data-subtab="sources">Sources</button>
-        <button class="tab" data-subtab="accuracy" id="tab-accuracy">📊 Current Accuracy</button>
       </div>
 
       <!-- Sub-tab: Verify text -->
@@ -386,12 +385,60 @@
 
           </div>
         </div>
+      </div>
 
-    </section>
+    
+      <!-- Sub-tab: Current Accuracy Rate -->
+      <div class="subtab-content" id="subtab-accuracy">
+        <div class="content-section">
+          <div class="section-label">
+            <h2>Current Accuracy Rate</h2>
+            <p id="acc-subtitle">Analyze any text to see its real-time accuracy breakdown here.</p>
+          </div>
+          <div id="acc-empty" class="acc-empty-state">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#c4bdb4" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+            <h3>No analysis yet</h3>
+            <p>Paste text in the <strong>Verify text</strong> tab and click <strong>Analyze</strong> &mdash; results appear instantly.</p>
+          </div>
+          <div id="acc-results" class="hidden">
+            <div class="acc-score-row">
+              <div class="acc-big-score">
+                <svg class="acc-ring" viewBox="0 0 80 80" width="120" height="120">
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="#e8e2da" stroke-width="8"/>
+                  <circle id="acc-arc" cx="40" cy="40" r="34" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" transform="rotate(-90 40 40)" style="transition:stroke-dashoffset 1s ease,stroke 0.5s ease"/>
+                </svg>
+                <div class="acc-score-center">
+                  <div class="acc-score-num" id="acc-score-num">0</div>
+                  <div class="acc-score-pct">%</div>
+                  <div class="acc-score-label">Accuracy</div>
+                </div>
+              </div>
+              <div class="acc-meta">
+                <div class="acc-meta-item"><span class="acc-meta-label">Total Claims</span><span class="acc-meta-val" id="acc-total">0</span></div>
+                <div class="acc-meta-item"><span class="acc-meta-label">Avg Confidence</span><span class="acc-meta-val" id="acc-avg-conf">0%</span></div>
+                <div class="acc-meta-item"><span class="acc-meta-label">Analyzed At</span><span class="acc-meta-val" id="acc-time">&mdash;</span></div>
+                <div class="acc-meta-item"><span class="acc-meta-label">Model</span><span class="acc-meta-val">Groq LLaMA 3</span></div>
+              </div>
+            </div>
+            <div class="acc-breakdown">
+              <div class="acc-breakdown-title">Claim Breakdown</div>
+              <div class="acc-bar-item"><div class="acc-bar-label"><span class="acc-dot verified"></span>Verified</div><div class="acc-bar-track"><div class="acc-bar-fill verified-fill" id="acc-bar-verified"></div></div><div class="acc-bar-count" id="acc-n-verified">0</div></div>
+              <div class="acc-bar-item"><div class="acc-bar-label"><span class="acc-dot unverifiable"></span>Unverifiable</div><div class="acc-bar-track"><div class="acc-bar-fill unverifiable-fill" id="acc-bar-unverifiable"></div></div><div class="acc-bar-count" id="acc-n-unverifiable">0</div></div>
+              <div class="acc-bar-item"><div class="acc-bar-label"><span class="acc-dot false"></span>Incorrect</div><div class="acc-bar-track"><div class="acc-bar-fill false-fill" id="acc-bar-false"></div></div><div class="acc-bar-count" id="acc-n-false">0</div></div>
+            </div>
+            <div class="acc-breakdown">
+              <div class="acc-breakdown-title">Confidence Distribution</div>
+              <div class="acc-conf-grid" id="acc-conf-grid"></div>
+            </div>
+            <div class="acc-breakdown">
+              <div class="acc-breakdown-title">Per-Claim Accuracy</div>
+              <div class="acc-claim-list" id="acc-claim-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- ═══════════ ACCURACY SUBTAB PANEL ═══════════ -->
-    <!-- This is injected into subtab-accuracy via JS -->
-
+</section>
 
     <!-- ═══════════ HISTORY VIEW ═══════════ -->
     <section class="view" id="view-history">
