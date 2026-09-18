@@ -3028,3 +3028,202 @@ html {
   border: 1px solid #fcd34d;
 }
 
+
+/* ══════════════════════════════════════════════════════
+   CURRENT ACCURACY RATE TAB
+══════════════════════════════════════════════════════ */
+
+/* Tab pulse when new results arrive */
+.tab.tab-pulse {
+  background: #f0fdf4;
+  border-color: #22c55e;
+  color: #16a34a;
+  animation: tabPulse 0.4s ease 2;
+}
+@keyframes tabPulse {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+/* Empty state */
+.acc-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 24px;
+  text-align: center;
+  color: #8c8279;
+}
+.acc-empty-state h3 { margin: 0; font-size: 16px; font-weight: 600; color: #4a4540; }
+.acc-empty-state p  { margin: 0; font-size: 14px; }
+
+/* Score row */
+.acc-score-row {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 24px;
+  background: #faf8f5;
+  border-radius: 12px;
+  border: 1px solid #e8e2da;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.acc-big-score {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+.acc-ring { display: block; }
+.acc-score-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.acc-score-num  { font-size: 26px; font-weight: 700; color: #1a1512; }
+.acc-score-pct  { font-size: 13px; font-weight: 600; color: #6c6560; }
+.acc-score-label{ font-size: 10px; color: #9c948c; margin-top: 2px; }
+
+.acc-meta { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 160px; }
+.acc-meta-item { display: flex; justify-content: space-between; font-size: 13px; }
+.acc-meta-label { color: #7a7269; }
+.acc-meta-val   { font-weight: 600; color: #1a1512; }
+
+/* Breakdown section */
+.acc-breakdown {
+  background: #fff;
+  border: 1px solid #e8e2da;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.acc-breakdown-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9c948c;
+  margin-bottom: 14px;
+}
+.acc-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.acc-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+  font-size: 13px;
+  color: #4a4540;
+  flex-shrink: 0;
+}
+.acc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.acc-dot.verified     { background: #22c55e; }
+.acc-dot.unverifiable { background: #f59e0b; }
+.acc-dot.false        { background: #ef4444; }
+
+.acc-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #ede8e2;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.acc-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  width: 0;
+  transition: width 0.8s ease;
+}
+.verified-fill     { background: #22c55e; }
+.unverifiable-fill { background: #f59e0b; }
+.false-fill        { background: #ef4444; }
+.acc-bar-count { font-size: 13px; font-weight: 600; min-width: 20px; text-align: right; color: #4a4540; }
+
+/* Histogram */
+.acc-conf-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 80px;
+}
+.acc-hist-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+.acc-hist-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+  transition: height 0.6s ease;
+}
+.acc-hist-label {
+  font-size: 9px;
+  color: #9c948c;
+}
+
+/* Per-claim list */
+.acc-claim-list { display: flex; flex-direction: column; gap: 8px; }
+.acc-claim-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: #faf8f5;
+  border-radius: 8px;
+  border: 1px solid #e8e2da;
+  transition: background 0.15s;
+}
+.acc-claim-row:hover { background: #f3ede8; }
+.acc-claim-idx {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9c948c;
+  min-width: 24px;
+  padding-top: 2px;
+}
+.acc-claim-body { flex: 1; }
+.acc-claim-text {
+  font-size: 13px;
+  color: #2a2420;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.acc-claim-meta  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.acc-verdict {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  text-transform: capitalize;
+}
+.acc-verdict.verified     { background: #dcfce7; color: #16a34a; }
+.acc-verdict.unverifiable { background: #fef3c7; color: #92400e; }
+.acc-verdict.false        { background: #fee2e2; color: #dc2626; }
+.acc-conf-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1.5px solid;
+  background: transparent;
+}

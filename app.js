@@ -437,6 +437,7 @@ async function runAnalysis(text) {
     }
 
     displayResults(text, withRealSources);
+    updateAccuracyTab(withRealSources);   // ← Populate Current Accuracy tab
 
     // Save to Supabase
     await saveAnalysis(text, withRealSources);
@@ -1539,3 +1540,113 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
     }
   }
 })();
+
+// ══════════════════════════════════════════════════════════════
+// CURRENT ACCURACY RATE TAB — real data from Groq analysis
+// ══════════════════════════════════════════════════════════════
+function updateAccuracyTab(claims) {
+  if (!claims || claims.length === 0) return;
+
+  const total       = claims.length;
+  const verified    = claims.filter(c => c.status === 'verified').length;
+  const unverifiable = claims.filter(c => c.status === 'unverifiable').length;
+  const incorrect   = claims.filter(c => c.status === 'false' || c.status === 'incorrect').length;
+  const accuracy    = Math.round((verified / total) * 100);
+  const avgConf     = Math.round(claims.reduce((s, c) => s + (c.confidence || 0), 0) / total);
+  const now         = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+  // Show results panel, hide empty state
+  const empty   = $('#acc-empty');
+  const results = $('#acc-results');
+  if (empty)   empty.classList.add('hidden');
+  if (results) results.classList.remove('hidden');
+
+  // Update subtitle
+  const sub = $('#acc-subtitle');
+  if (sub) sub.textContent = `Last analyzed at ${now} — based on ${total} claim${total !== 1 ? 's' : ''} from Groq LLaMA 3`;
+
+  // ── Animated ring ───────────────────────────────────────────
+  const arc = $('#acc-arc');
+  if (arc) {
+    const circumference = 2 * Math.PI * 34; // 213.6
+    const dashOffset    = circumference * (1 - accuracy / 100);
+    arc.style.strokeDashoffset = dashOffset;
+    arc.style.stroke = accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#f59e0b' : '#ef4444';
+  }
+
+  // ── Score number (count-up animation) ───────────────────────
+  const scoreEl = $('#acc-score-num');
+  if (scoreEl) {
+    let current = 0;
+    const step  = Math.ceil(accuracy / 40);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, accuracy);
+      scoreEl.textContent = current;
+      if (current >= accuracy) clearInterval(timer);
+    }, 20);
+  }
+
+  // ── Meta values ─────────────────────────────────────────────
+  if ($('#acc-total'))    $('#acc-total').textContent    = total;
+  if ($('#acc-avg-conf')) $('#acc-avg-conf').textContent = avgConf + '%';
+  if ($('#acc-time'))     $('#acc-time').textContent     = now;
+
+  // ── Verdict breakdown bars ───────────────────────────────────
+  function setBar(fillId, countId, count) {
+    const fill  = $(fillId);
+    const countEl = $(countId);
+    if (fill)    fill.style.width   = (count / total * 100).toFixed(1) + '%';
+    if (countEl) countEl.textContent = count;
+  }
+  setBar('#acc-bar-verified',     '#acc-n-verified',     verified);
+  setBar('#acc-bar-unverifiable', '#acc-n-unverifiable', unverifiable);
+  setBar('#acc-bar-false',        '#acc-n-false',        incorrect);
+
+  // ── Confidence distribution (10-bucket histogram) ────────────
+  const grid = $('#acc-conf-grid');
+  if (grid) {
+    const buckets = Array(10).fill(0);
+    claims.forEach(c => {
+      const idx = Math.min(9, Math.floor((c.confidence || 0) / 10));
+      buckets[idx]++;
+    });
+    const maxB = Math.max(...buckets, 1);
+    grid.innerHTML = buckets.map((count, i) => {
+      const label  = `${i * 10}–${i * 10 + 9}%`;
+      const height = Math.round((count / maxB) * 60);
+      const color  = i >= 8 ? '#22c55e' : i >= 6 ? '#f59e0b' : '#ef4444';
+      return `<div class="acc-hist-col" title="${label}: ${count} claim${count !== 1 ? 's' : ''}">
+        <div class="acc-hist-bar" style="height:${height}px;background:${color}"></div>
+        <div class="acc-hist-label">${i * 10}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Per-claim rows ────────────────────────────────────────────
+  const list = $('#acc-claim-list');
+  if (list) {
+    list.innerHTML = claims.map((c, i) => {
+      const status    = c.status === 'verified' ? 'verified' : c.status === 'unverifiable' ? 'unverifiable' : 'false';
+      const icon      = status === 'verified' ? '✅' : status === 'unverifiable' ? '⚠️' : '❌';
+      const confColor = (c.confidence || 0) >= 80 ? '#22c55e' : (c.confidence || 0) >= 60 ? '#f59e0b' : '#ef4444';
+      const shortText = (c.text || c.claim_text || '').slice(0, 90) + ((c.text || c.claim_text || '').length > 90 ? '…' : '');
+      return `<div class="acc-claim-row">
+        <div class="acc-claim-idx">#${i + 1}</div>
+        <div class="acc-claim-body">
+          <div class="acc-claim-text">${shortText}</div>
+          <div class="acc-claim-meta">
+            <span class="acc-verdict ${status}">${icon} ${status}</span>
+            <span class="acc-conf-pill" style="color:${confColor};border-color:${confColor}">${c.confidence || 0}%</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Flash the tab button ──────────────────────────────────────
+  const tabBtn = $('#tab-accuracy');
+  if (tabBtn) {
+    tabBtn.classList.add('tab-pulse');
+    setTimeout(() => tabBtn.classList.remove('tab-pulse'), 2000);
+  }
+}
