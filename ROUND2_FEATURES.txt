@@ -1,0 +1,84 @@
+═══════════════════════════════════════════════════════════════
+          HALLUCINATION HUNTER — ROUND 2 PLANNED FEATURES
+═══════════════════════════════════════════════════════════════
+
+Team: [Your Team Name]
+Project: Hallucination Hunter — LLM Fact Verification Tool
+
+
+ROUND 1 (COMPLETED):
+─────────────────────
+  ✅ Core Text Analyzer — Paste AI-generated text, extract claims,
+     verify each claim against trusted sources, color-coded results
+  ✅ Voice Input — Speech-to-text using Web Speech API for hands-free
+     text input, then analyze
+
+
+ROUND 2 (PLANNED FEATURES):
+────────────────────────────
+
+1. SUPABASE DATABASE INTEGRATION
+   ─────────────────────────────
+   • Real-time cloud database using Supabase (PostgreSQL)
+   • All analyses stored persistently — no data loss on refresh
+   • User-specific data isolation with Row Level Security
+   • Tables: analyses, claims, settings
+   • Tech: Supabase JS SDK v2, PostgreSQL, RLS policies
+
+2. ANALYSIS HISTORY
+   ────────────────
+   • View all past analyses in a timeline
+   • Each history entry shows: trust score, claim count, timestamp
+   • Click any entry to expand full claim-by-claim breakdown
+   • Delete individual analyses or clear all history
+   • Real-time sync with Supabase database
+
+3. DASHBOARD ANALYTICS
+   ───────────────────
+   • Live stats cards: Total Analyses, Avg Trust Score,
+     Claims Checked, Accuracy Rate
+   • Auto-updates after each new analysis
+   • Aggregated from all stored analyses in database
+
+4. SETTINGS PANEL
+   ──────────────
+   • General Settings:
+     - Verification Engine selector (Groq LLaMA 3)
+     - Confidence threshold slider (0-100%)
+   • Database Settings:
+     - Live connection status indicator
+     - Database URL display
+     - Test connection button
+     - Total records count
+
+5. CLAIM CLASSIFICATION SYSTEM
+   ───────────────────────────
+   • Three-tier classification:
+     - ✅ VERIFIED — Claim supported by trusted sources
+     - ⚠️ UNVERIFIABLE — No matching source found
+     - ❌ INCORRECT — Claim contradicted by sources
+   • Confidence scoring (0-100%) per claim
+   • Source attribution with links
+   • Correction suggestions for incorrect claims
+
+6. EXPORT & SHARING
+   ────────────────
+   • Copy analysis results to clipboard
+   • Export full report as text
+   • Share analysis via link
+
+
+TECH STACK:
+───────────
+   Frontend  : HTML5, CSS3, Vanilla JavaScript
+   AI Engine : Groq API (LLaMA 3 / GPT-OSS-120B)
+   Database  : Supabase (PostgreSQL)
+   Hosting   : Vercel (Serverless)
+   Voice     : Web Speech API (Browser native)
+
+
+═══════════════════════════════════════════════════════════════
+   These features build on top of Round 1's core analyzer
+   to create a full-stack AI verification platform with
+   persistent storage and analytics.
+═══════════════════════════════════════════════════════════════
