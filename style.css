@@ -3030,7 +3030,7 @@ html {
 
 
 /* ══════════════════════════════════════════════════════
-   CURRENT ACCURACY RATE TAB
+   CURRENT ACCURACY RATE TAB — warm monochrome only
 ══════════════════════════════════════════════════════ */
 
 .tab.tab-pulse {
@@ -3045,28 +3045,16 @@ html {
 }
 
 .acc-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 64px 24px;
-  text-align: center;
-  color: var(--text-300);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 64px 24px; text-align: center; color: var(--text-300);
 }
 .acc-empty-state h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-500); }
 .acc-empty-state p  { margin: 0; font-size: 13px; line-height: 1.6; max-width: 320px; }
 
 .acc-score-row {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  padding: 20px 24px;
-  background: var(--card);
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border-light);
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  display: flex; align-items: center; gap: 28px; padding: 20px 24px;
+  background: var(--card); border-radius: var(--r-lg);
+  border: 1px solid var(--border-light); margin-bottom: 16px; flex-wrap: wrap;
 }
 .acc-big-score { position: relative; width: 100px; height: 100px; flex-shrink: 0; }
 .acc-ring { display: block; }
@@ -3085,11 +3073,8 @@ html {
 .acc-meta-val   { font-weight: 600; color: var(--text-700); }
 
 .acc-breakdown {
-  background: var(--card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--r-md);
-  padding: 16px 18px;
-  margin-bottom: 12px;
+  background: var(--card); border: 1px solid var(--border-light);
+  border-radius: var(--r-md); padding: 16px 18px; margin-bottom: 12px;
 }
 .acc-breakdown-title {
   font-size: 10.5px; font-weight: 600; text-transform: uppercase;
@@ -3100,15 +3085,15 @@ html {
 .acc-bar-item:last-child { margin-bottom: 0; }
 .acc-bar-label { display: flex; align-items: center; gap: 6px; width: 100px; font-size: 12px; font-weight: 500; color: var(--text-500); flex-shrink: 0; }
 .acc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.acc-dot.verified     { background: var(--green); }
-.acc-dot.unverifiable { background: var(--amber); }
-.acc-dot.false        { background: var(--red); }
+.acc-dot.verified     { background: var(--text-700); }
+.acc-dot.unverifiable { background: var(--text-400); }
+.acc-dot.false        { background: var(--text-300); }
 
 .acc-bar-track { flex: 1; height: 6px; background: var(--bg-warm); border-radius: 99px; overflow: hidden; }
 .acc-bar-fill  { height: 100%; border-radius: 99px; width: 0; transition: width 0.8s ease; }
-.verified-fill     { background: var(--green); opacity: 0.65; }
-.unverifiable-fill { background: var(--amber); opacity: 0.65; }
-.false-fill        { background: var(--red); opacity: 0.65; }
+.verified-fill     { background: var(--text-700); }
+.unverifiable-fill { background: var(--text-400); }
+.false-fill        { background: var(--text-300); }
 .acc-bar-count { font-size: 12px; font-weight: 600; min-width: 18px; text-align: right; color: var(--text-500); }
 
 .acc-conf-grid { display: flex; align-items: flex-end; gap: 4px; height: 60px; padding-top: 4px; }
@@ -3124,9 +3109,9 @@ html {
   border-left: 3px solid var(--border-light); transition: background 0.12s;
 }
 .acc-claim-row:hover { background: var(--bg); }
-.acc-claim-row.row-verified     { border-left-color: var(--green); }
-.acc-claim-row.row-unverifiable { border-left-color: var(--amber); }
-.acc-claim-row.row-false        { border-left-color: var(--red); }
+.acc-claim-row.row-verified     { border-left-color: var(--text-700); }
+.acc-claim-row.row-unverifiable { border-left-color: var(--text-400); }
+.acc-claim-row.row-false        { border-left-color: var(--text-300); }
 
 .acc-claim-idx  { font-size: 10.5px; font-weight: 600; color: var(--text-300); min-width: 22px; padding-top: 2px; font-family: var(--mono); }
 .acc-claim-body { flex: 1; }
@@ -3135,12 +3120,11 @@ html {
 .acc-verdict {
   font-size: 10.5px; font-weight: 600; padding: 2px 7px;
   border-radius: 4px; text-transform: capitalize;
+  background: var(--bg-warm); color: var(--text-500);
 }
-.acc-verdict.verified     { background: var(--green-bg); color: var(--green); }
-.acc-verdict.unverifiable { background: var(--amber-bg); color: var(--amber); }
-.acc-verdict.false        { background: var(--red-bg); color: var(--red); }
 .acc-conf-pill {
   font-size: 10.5px; font-weight: 600; padding: 2px 7px;
   border-radius: 4px; background: var(--bg-warm); color: var(--text-500); border: none;
 }
+
 
