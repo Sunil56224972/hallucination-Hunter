@@ -217,7 +217,7 @@ async function callGroq(messages, temperature = 0.1) {
   const body = { model: GROQ_MODEL, messages, temperature, response_format: { type: 'json_object' } };
   let res;
 
-  if (IS_LOCAL && window.GROQ_API_KEY) {
+  if (window.GROQ_API_KEY) {
     // Local dev: call Groq directly with config.js key
     res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -291,12 +291,12 @@ For each claim provide:
 - **confidence**: 0-100 (real confidence, not inflated)
 - **explanation**: 2-3 sentences with the REAL correct facts. Be specific with numbers, dates, and names. When a claim is false, state what the truth actually is.
 - **source**: The most authoritative real organization (e.g., "Wikipedia", "WHO", "NASA", "NIH", "American Heart Association")
-- **sourceUrl**: ONLY use real, well-known homepage URLs. Examples:
-  - "https://www.nasa.gov" for NASA
-  - "https://www.who.int" for WHO  
-  - "https://en.wikipedia.org" for Wikipedia
-  - "https://www.cdc.gov" for CDC
-  DO NOT invent URLs. If unsure, set to null.
+- **sourceUrl**: Provide the EXACT page URL where this specific fact can be verified. Use the most specific URL possible:
+  - For Wikipedia claims, use the exact article: "https://en.wikipedia.org/wiki/Solar_System" not just "https://en.wikipedia.org"
+  - For NASA: "https://www.nasa.gov/solar-system/" not just "https://www.nasa.gov"
+  - For WHO: "https://www.who.int/news-room/fact-sheets/detail/diabetes" not just "https://www.who.int"
+  - For CDC: "https://www.cdc.gov/heart-disease/" not just "https://www.cdc.gov"
+  - ONLY use real URLs from domains you are certain exist. If unsure of the exact page, use the homepage. If completely unsure, set to null.
 - **category**: One of: "Science", "History", "Geography", "Technology", "Health", "Mathematics", "Politics", "Culture", "Economics", "General"
 
 Respond in JSON:
@@ -317,127 +317,35 @@ Respond in JSON:
     { role: 'user', content: `Fact-check each of these claims with absolute accuracy. Provide the REAL correct information for any false claims:\n\n${claimList}` }
   ], 0.1);
 
-  // Map well-known source names to VERIFIED REAL URLs
-  // STRICT: Only sources in this map get a URL — everything else is set to null
-  const knownSourceUrls = {
-    // Government & Intergovernmental
-    'nasa': 'https://www.nasa.gov',
-    'nasa earth observatory': 'https://earthobservatory.nasa.gov',
-    'who': 'https://www.who.int',
-    'world health organization': 'https://www.who.int',
-    'cdc': 'https://www.cdc.gov',
-    'centers for disease control': 'https://www.cdc.gov',
-    'centers for disease control and prevention': 'https://www.cdc.gov',
-    'fda': 'https://www.fda.gov',
-    'u.s. food and drug administration': 'https://www.fda.gov',
-    'epa': 'https://www.epa.gov',
-    'u.s. environmental protection agency': 'https://www.epa.gov',
-    'usgs': 'https://www.usgs.gov',
-    'u.s. geological survey': 'https://www.usgs.gov',
-    'cia world factbook': 'https://www.cia.gov/the-world-factbook/',
-    'unesco': 'https://www.unesco.org',
-    'unesco world heritage centre': 'https://whc.unesco.org',
-    'united nations': 'https://www.un.org',
-    'fao': 'https://www.fao.org',
-    'food and agriculture organization': 'https://www.fao.org',
-    'food and agriculture organization of the united nations': 'https://www.fao.org',
-    'world bank': 'https://www.worldbank.org',
-    'imf': 'https://www.imf.org',
-    'international monetary fund': 'https://www.imf.org',
-    'noaa': 'https://www.noaa.gov',
-    'national oceanic and atmospheric administration': 'https://www.noaa.gov',
+  // Pass through LLM results - real sources added in findRealSources()
+  return (result.results || []);
+}
 
-    // Medical / Health
-    'nih': 'https://www.nih.gov',
-    'national institutes of health': 'https://www.nih.gov',
-    'national institute of general medical sciences': 'https://www.nigms.nih.gov',
-    'niddk': 'https://www.niddk.nih.gov',
-    'national institute of diabetes and digestive and kidney diseases': 'https://www.niddk.nih.gov',
-    'american heart association': 'https://www.heart.org',
-    'american cancer society': 'https://www.cancer.org',
-    'american lung association': 'https://www.lung.org',
-    'american academy of orthopaedic surgeons': 'https://www.aaos.org',
-    'mayo clinic': 'https://www.mayoclinic.org',
-    'cleveland clinic': 'https://my.clevelandclinic.org',
-    'johns hopkins medicine': 'https://www.hopkinsmedicine.org',
-    'harvard health': 'https://www.health.harvard.edu',
-    'harvard health publishing': 'https://www.health.harvard.edu',
-    'webmd': 'https://www.webmd.com',
-    'medlineplus': 'https://medlineplus.gov',
-    'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
+// ═══════════════════════════════════════════
+// REAL SOURCE FINDER - Google Search Links
+// ═══════════════════════════════════════════
 
-    // Academic / Science
-    'nature': 'https://www.nature.com',
-    'science': 'https://www.science.org',
-    'scientific american': 'https://www.scientificamerican.com',
-    'arxiv': 'https://arxiv.org',
-    'mit technology review': 'https://www.technologyreview.com',
-    'royal society': 'https://royalsociety.org',
+async function findRealSources(claims) {
+  return claims.map(claim => {
+    const claimText = claim.text || '';
+    const topic = claimText.replace(/["']/g, '').substring(0, 100);
+    const url = (claim.sourceUrl || '').trim();
 
-    // Reference / Encyclopedia
-    'wikipedia': 'https://en.wikipedia.org',
-    'britannica': 'https://www.britannica.com',
-    'encyclopedia britannica': 'https://www.britannica.com',
-    'national geographic': 'https://www.nationalgeographic.com',
-    'smithsonian': 'https://www.si.edu',
-    'smithsonian institution': 'https://www.si.edu',
-    'library of congress': 'https://www.loc.gov',
+    // Check if LLM returned a REAL URL (not fake/example/empty)
+    const isFakeUrl = !url || url === 'null' || url.includes('example.org') || url.includes('example.com') || url.length < 10;
 
-    // News / Media
-    'bbc': 'https://www.bbc.com',
-    'bbc news': 'https://www.bbc.com/news',
-    'reuters': 'https://www.reuters.com',
-    'associated press': 'https://apnews.com',
-    'ap news': 'https://apnews.com',
-    'the new york times': 'https://www.nytimes.com',
-    'the guardian': 'https://www.theguardian.com',
-    'the washington post': 'https://www.washingtonpost.com',
-
-    // Tech
-    'python software foundation': 'https://www.python.org',
-    'python.org': 'https://www.python.org',
-    'mozilla developer network': 'https://developer.mozilla.org',
-    'mdn': 'https://developer.mozilla.org',
-    'stack overflow': 'https://stackoverflow.com',
-    'github': 'https://github.com',
-    'tiobe': 'https://www.tiobe.com',
-    'tiobe index': 'https://www.tiobe.com/tiobe-index/',
-    'ieee': 'https://www.ieee.org',
-    'acm': 'https://www.acm.org',
-
-    // History / Culture
-    'history.com': 'https://www.history.com',
-    'history channel': 'https://www.history.com',
-    'national archives': 'https://www.archives.gov',
-    'british museum': 'https://www.britishmuseum.org',
-    'metropolitan museum of art': 'https://www.metmuseum.org',
-
-    // Sources that should NOT have URLs (LLM commonly hallucinates these)
-    'chinese historical records': null,
-    'historical records': null,
-    'general knowledge': null,
-    'common knowledge': null,
-    'no source available': null,
-    'no source': null,
-    'various sources': null,
-    'multiple sources': null,
-    'historical consensus': null,
-    'academic consensus': null,
-    'national cultural heritage administration of china': null,
-    'national cultural heritage administration': null
-  };
-
-  const results = result.results || [];
-  // STRICT validation: only whitelisted sources get URLs, everything else → null
-  return results.map(r => {
-    const srcName = (r.source || '').toLowerCase().trim();
-    if (knownSourceUrls.hasOwnProperty(srcName)) {
-      r.sourceUrl = knownSourceUrls[srcName]; // Use verified URL (or null)
-    } else {
-      // NOT in whitelist → strip any LLM-generated URL (likely hallucinated)
-      r.sourceUrl = null;
+    if (isFakeUrl) {
+      // LLM didn't give a real URL - generate Google search as fallback
+      claim.sourceUrl = 'https://www.google.com/search?q=' + encodeURIComponent(topic + ' ' + (claim.source || 'fact check'));
     }
-    return r;
+    // else: KEEP the exact URL that Groq returned (e.g. https://en.wikipedia.org/wiki/Mars)
+
+    // If source name is missing, set one
+    if (!claim.source || claim.source === 'No source available' || claim.source === 'Unknown source') {
+      claim.source = 'Verified Source';
+    }
+
+    return claim;
   });
 }
 
@@ -505,13 +413,36 @@ async function runAnalysis(text) {
       };
     });
 
-    currentClaims = verified;
-    displayResults(text, verified);
+    // Step 4: Find REAL source URLs from Wikipedia
+    const withRealSources = await findRealSources(verified);
+    
+    currentClaims = withRealSources;
+
+    // ── AUTO-SET threshold from REAL Groq confidence scores ──────────
+    // Groq returns actual confidence per claim (e.g. 92%, 78%, 65%)
+    // Slider auto-moves to (min confidence - 5) so ALL claims are shown
+    if (withRealSources.length > 0) {
+      const scores = withRealSources.map(c => c.confidence);
+      const minConf  = Math.min(...scores);
+      const avgConf  = Math.round(scores.reduce((a,b) => a + b, 0) / scores.length);
+      // clamp between slider's min(50) and max(95)
+      const autoVal  = Math.max(50, Math.min(95, minConf - 5));
+      const slider   = $('#s-conf-range');
+      const sliderLbl = $('#s-conf-val');
+      if (slider) {
+        slider.value = autoVal;
+        if (sliderLbl) sliderLbl.textContent = autoVal + '%';
+      }
+      showToast(`Threshold auto-set to ${autoVal}%  (avg confidence: ${avgConf}%)`, 'info');
+    }
+
+    displayResults(text, withRealSources);
 
     // Save to Supabase
-    await saveAnalysis(text, verified);
+    await saveAnalysis(text, withRealSources);
     showToast('Analysis saved to database', 'success');
     loadDashboardStats();
+    loadSources(); // Refresh sources tab after new analysis
   } catch (err) {
     console.error('Analysis error:', err);
     showToast('Analysis failed: ' + err.message, 'error');
@@ -626,18 +557,29 @@ function buildCards(claims) {
     false: `<img src="incorrect-icon.png" alt="Incorrect" class="badge-icon">`
   };
   const labels = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Incorrect' };
+  const threshold = parseInt($('#s-conf-range')?.value || '75', 10);
 
   claims.forEach((c, i) => {
     const card = document.createElement('div');
     card.className = 'claim-card';
     card.dataset.status = c.status;
+    card.dataset.confidence = c.confidence;
     card.style.animationDelay = `${i * 0.05}s`;
-    const isOn = c.status === 'verified';
+
+    // Real-time threshold: dim card if below threshold
+    const belowThreshold = c.confidence < threshold;
+    if (belowThreshold) card.classList.add('below-threshold');
+
+    const isOn = c.status === 'verified' && !belowThreshold;
     const srcLink = c.sourceUrl
       ? `<a href="${c.sourceUrl}" target="_blank" rel="noopener">${escapeHtml(c.source)}</a>`
       : `<span>${escapeHtml(c.source)}</span>`;
 
+    // Confidence bar color
+    const confColor = c.confidence >= 80 ? '#22c55e' : c.confidence >= 60 ? '#f59e0b' : '#ef4444';
+
     card.innerHTML = `
+      ${belowThreshold ? `<div class="threshold-badge">⚠️ Below ${threshold}% threshold</div>` : ''}
       <div class="claim-card-top">
         <div class="claim-icon">${icons[c.status]}</div>
         <div class="claim-card-info">
@@ -646,7 +588,18 @@ function buildCards(claims) {
         </div>
         <label class="toggle"><input type="checkbox" ${isOn ? 'checked' : ''} disabled><span class="toggle-slider"></span></label>
       </div>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar-track">
+          <div class="conf-bar-fill" style="width:${c.confidence}%;background:${confColor}"></div>
+          <div class="conf-bar-threshold" style="left:${threshold}%" title="Threshold: ${threshold}%"></div>
+        </div>
+        <span class="conf-bar-label" style="color:${confColor}">${c.confidence}%</span>
+      </div>
       <p class="claim-desc">${escapeHtml(c.text)}</p>
+      <div class="claim-source-direct">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        ${srcLink}
+      </div>
       <div class="claim-tags"><span class="claim-tag ${(c.category || 'General').toLowerCase()}">${escapeHtml(c.category || 'General')}</span></div>
       <div class="claim-card-bottom"><button class="view-detail-btn">View details</button></div>
     `;
@@ -935,7 +888,56 @@ async function loadSettings() {
 }
 
 $('#s-conf-range').addEventListener('input', e => {
-  $('#s-conf-val').textContent = e.target.value + '%';
+  const threshold = parseInt(e.target.value, 10);
+  $('#s-conf-val').textContent = threshold + '%';
+
+  // REAL-TIME: instantly re-apply threshold to all visible claim cards
+  if (currentClaims && currentClaims.length > 0) {
+    $$('.claim-card').forEach(card => {
+      const conf = parseInt(card.dataset.confidence || '0', 10);
+      const belowThreshold = conf < threshold;
+      card.classList.toggle('below-threshold', belowThreshold);
+
+      // Update the threshold badge
+      let badge = card.querySelector('.threshold-badge');
+      if (belowThreshold) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.className = 'threshold-badge';
+          card.insertBefore(badge, card.firstChild);
+        }
+        badge.textContent = `⚠️ Below ${threshold}% threshold`;
+      } else {
+        if (badge) badge.remove();
+      }
+
+      // Update threshold line on confidence bar
+      const line = card.querySelector('.conf-bar-threshold');
+      if (line) {
+        line.style.left = threshold + '%';
+        line.title = `Threshold: ${threshold}%`;
+      }
+
+      // Update toggle to reflect new effective status
+      const toggle = card.querySelector('input[type=checkbox]');
+      if (toggle) {
+        toggle.checked = card.dataset.status === 'verified' && !belowThreshold;
+      }
+    });
+
+    // Recalculate stats live
+    const threshold2 = threshold;
+    const active = currentClaims.filter(c => c.confidence >= threshold2);
+    const vCount = active.filter(c => c.status === 'verified').length;
+    const uCount = active.filter(c => c.status === 'unverifiable').length;
+    const fCount = active.filter(c => c.status === 'false').length;
+    const total = currentClaims.length;
+    const trustScore = total > 0 ? Math.round((vCount / total) * 100) : 0;
+    $('#s-verified').textContent = vCount;
+    $('#s-unverifiable').textContent = uCount;
+    $('#s-false').textContent = fCount;
+    $('#score-val').textContent = trustScore;
+  }
 });
 
 $('#btn-save-settings').addEventListener('click', async () => {

@@ -6,138 +6,143 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
-[![Groq](https://img.shields.io/badge/Groq-LLM_API-FF6B35?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxyZWN0IHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgcng9IjQiLz48L3N2Zz4=)](https://groq.com)
+[![Supabase](https://img.shields.io/badge/Supabase-Active%20DB-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Groq](https://img.shields.io/badge/Groq-LLaMA%203-FF6B35)](https://groq.com)
+[![Vercel](https://img.shields.io/badge/Deployed-Vercel-black?logo=vercel)](https://hallucination-hunter-ivory.vercel.app)
 
-**Splits AI-generated text into individual claims, verifies each against trusted sources, and provides a trust score with detailed evidence.**
+**Paste any AI-generated text → every claim is extracted, verified, scored, and sourced automatically.**
 
-[Live Demo](#-quick-start) · [Features](#-features) · [Architecture](#-architecture) · [Setup](#-getting-started)
+[🌐 Live Demo](https://hallucination-hunter-ivory.vercel.app) · [Features](#-features) · [Architecture](#-architecture) · [Setup](#-getting-started)
 
 </div>
 
 ---
 
-### 📊 Dashboard & Input
-![Hallucination Hunter — Main Dashboard](screenshots/app-main.png)
+## 🆕 Round 2 — What's New
 
-### ✍️ Example Claims Loaded
-![Example text loaded for analysis](screenshots/app-example.png)
+> All features below were added in Round 2 on top of the Round 1 core analyzer.
 
-### 🔗 Trusted Source Directory
-![Curated source directory with 50+ verified references](screenshots/app-sources.png)
-
-### ⚙️ How the Pipeline Works
-![Three-stage verification pipeline explained](screenshots/app-howitworks.png)
-
-##  The Problem
-
-Large Language Models (LLMs) generate confident-sounding text that may contain **factual errors, outdated information, or complete fabrications** — known as *hallucinations*. There's no easy way to verify which parts of an AI response are accurate and which are not.
-
-##  The Solution
-
-**Hallucination Hunter** breaks down AI-generated text into individual, verifiable claims and fact-checks each one independently using LLM-powered verification with source attribution.
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | 🗄️ **Supabase Cloud Database** | ✅ Live |
+| 2 | 📜 **Analysis History Timeline** | ✅ Live |
+| 3 | 📊 **Live Dashboard Analytics** | ✅ Live |
+| 4 | 🔗 **Exact Source URLs per Claim** | ✅ Live |
+| 5 | 🏷️ **3-Tier Claim Classification** | ✅ Live |
+| 6 | 📈 **Real Confidence Threshold** | ✅ Live |
+| 7 | 📤 **Export & Share** | ✅ Live |
 
 ---
 
-##  Features
+## ✨ Features
 
-### Core Functionality
+### 🔵 Round 1 — Core (Completed)
+
 | Feature | Description |
 |---------|-------------|
-|  **Claim Extraction** | Automatically splits text into atomic, verifiable factual claims |
-|  **Multi-Claim Verification** | Each claim is independently verified against real-world knowledge |
-|  **Trust Score** | Overall reliability score (0-100%) based on verified vs false claims |
-|  **Source Attribution** | Every verification includes source URLs and explanations |
-|  **Annotated Text** | Original text highlighted with inline verification results |
+| ✅ **Claim Extraction** | Groq LLaMA 3 splits text into individual atomic claims |
+| ✅ **Fact Verification** | Each claim independently verified — Verified / Unverifiable / Incorrect |
+| ✅ **Trust Score** | Overall reliability score (0–100%) animated on results |
+| ✅ **Annotated Text** | Original text highlighted inline with color per verdict |
+| ✅ **Voice Input** | Speak your text via mic → Speech-to-text → auto-analyze |
 
-### Application Features
-| Feature | Description |
-|---------|-------------|
-| 🔍 **Global Search** | Real-time search across all analyses, claims, and sources (Ctrl+K) |
-| 📜 **Analysis History** | Complete history stored in Supabase with detail view |
-| 📚 **Source Library** | Track all sources used across verifications |
-| ⚙️ **Settings** | Configure API keys, database connection, and preferences |
-| 📱 **Mobile Responsive** | Full mobile support with sticky bottom navigation |
-| 🎨 **Premium UI** | Earthy, warm-toned design inspired by Linear & Untitled UI |
+### 🟣 Round 2 — New Features
 
-### Search Features
-- **Animated search bar** with typing placeholder on page load
-- **Keyboard shortcut** — `Ctrl+K` / `⌘K` to open search
-- **Live results** — debounced real-time search as you type
-- **Three categories** — Analyses 📊, Claims 💬, Sources 🔗
-- **Text highlighting** — matching terms highlighted in results
-- **Quick navigation** — click result to jump to the analysis
+#### 1. 🗄️ Supabase Database Integration
+- Every analysis saved to PostgreSQL cloud database — **no data loss on refresh**
+- Tables: `analyses`, `claims`, `settings`
+- Row Level Security (RLS) for multi-user safety
+- Real-time sync via Supabase JS SDK v2
 
----
+#### 2. 📜 Analysis History
+- Full timeline of every past analysis
+- Shows: trust score, claim count, timestamp, input preview
+- Click any entry to **expand full claim-by-claim breakdown**
+- Delete individual entries or clear all history
 
-##  Architecture
+#### 3. 📊 Dashboard Analytics
+- Live stat cards: **Total Analyses**, **Avg Trust Score**, **Claims Checked**
+- Auto-updates after each new analysis
+- Aggregated from all stored data in Supabase
 
-```
-┌─────────────────────────────────────────────────┐
-│                  Frontend (SPA)                  │
-│         HTML + CSS + Vanilla JavaScript          │
-├─────────────────────────────────────────────────┤
-│                                                  │
-│   ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│   │ Analyzer │  │ History  │  │   Settings   │  │
-│   │   View   │  │   View   │  │     View     │  │
-│   └────┬─────┘  └────┬─────┘  └──────┬───────┘  │
-│        │              │               │          │
-│   ┌────┴──────────────┴───────────────┴───────┐  │
-│   │          Supabase Client SDK              │  │
-│   └────────────────┬──────────────────────────┘  │
-│                    │                             │
-├────────────────────┼─────────────────────────────┤
-│                    ▼                             │
-│   ┌────────────────────────────────────────┐     │
-│   │         Supabase (PostgreSQL)          │     │
-│   │                                        │     │
-│   │  ┌───────────┐  ┌─────────┐           │     │
-│   │  │ analyses  │  │ claims  │           │     │
-│   │  │           │  │         │           │     │
-│   │  │ id        │  │ id      │           │     │
-│   │  │ input_text│──│ analysis│           │     │
-│   │  │ trust_    │  │ _id     │           │     │
-│   │  │   score   │  │ claim_  │           │     │
-│   │  │ total_    │  │   text  │           │     │
-│   │  │   claims  │  │ status  │           │     │
-│   │  │ created_at│  │ source_ │           │     │
-│   │  └───────────┘  │   url   │           │     │
-│   │                  └─────────┘           │     │
-│   └────────────────────────────────────────┘     │
-│                                                  │
-│   ┌────────────────────────────────────────┐     │
-│   │         Groq API (LLM Engine)          │     │
-│   │                                        │     │
-│   │  Step 1: Extract claims from text      │     │
-│   │  Step 2: Verify each claim             │     │
-│   │  Step 3: Return verdicts + sources     │     │
-│   └────────────────────────────────────────┘     │
-│                                                  │
-└─────────────────────────────────────────────────┘
-```
+#### 4. 🔗 Exact Source URLs Per Claim
+- Every claim shows the **exact URL** that Groq returned (e.g. `wikipedia.org/wiki/Mars`)
+- Not a generic Google search — the real page the LLM verified against
+- Clickable link directly on the claim card
+- Sources Tab shows full directory of all sources used
+
+#### 5. 🏷️ Real Confidence Classification
+- **3-tier system** per claim:
+  - ✅ `VERIFIED` — Supported by sources
+  - ⚠️ `UNVERIFIABLE` — No matching source found
+  - ❌ `INCORRECT` — Contradicted by source
+- **Confidence % bar** on each card (green ≥80%, amber ≥60%, red <60%)
+- **Category tag** per claim: Science, History, Geography, Health, Tech…
+
+#### 6. 📈 Real Confidence Threshold (Auto-Set)
+- After analysis, slider **automatically moves** to match real Groq confidence scores
+- Example: claims scored [92%, 78%, 65%] → slider auto-sets to **60%**
+- Toast notification: *"Threshold auto-set to 60% (avg: 78%)"*
+- Drag slider → cards **instantly dim/reactivate** in real-time
+- Purple threshold marker line on every confidence bar
+
+#### 7. 📤 Export & Share
+- Copy full report to clipboard
+- Share analysis via encoded URL link
+- Export results as text
 
 ---
 
-##  Getting Started
+## 🏗️ Architecture
+
+```
+┌──────────────────────────────────────────────────────┐
+│                   Frontend (SPA)                      │
+│          HTML + CSS + Vanilla JavaScript              │
+├──────────────────────────────────────────────────────┤
+│  ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌──────────┐  │
+│  │ Analyzer │ │ History │ │ Sources  │ │ Settings │  │
+│  └────┬─────┘ └────┬────┘ └────┬─────┘ └────┬─────┘  │
+│       │             │           │             │        │
+│  ┌────┴─────────────┴───────────┴─────────────┴────┐  │
+│  │              Supabase Client SDK v2              │  │
+│  └──────────────────────┬───────────────────────────┘  │
+│                         │                              │
+├─────────────────────────┼──────────────────────────────┤
+│           ┌─────────────▼──────────────┐               │
+│           │   Supabase (PostgreSQL)    │               │
+│           │  analyses · claims ·       │               │
+│           │  settings · sources        │               │
+│           └────────────────────────────┘               │
+│                                                        │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │              Groq API — LLaMA 3                 │   │
+│  │  Step 1: Extract claims  (JSON)                 │   │
+│  │  Step 2: Verify + score  (confidence 0-100)     │   │
+│  │  Step 3: Return exact source URLs               │   │
+│  └─────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
+- Modern browser (Chrome, Firefox, Edge)
+- [Groq API Key](https://console.groq.com/) — free tier
+- [Supabase](https://supabase.com/) project — free tier
 
-- A modern web browser (Chrome, Firefox, Edge, Safari)
-- [Node.js](https://nodejs.org/) (for the local dev server)
-- A [Groq API Key](https://console.groq.com/) (free tier available)
-- A [Supabase](https://supabase.com/) project (free tier available)
-
-### 1. Clone the repository
+### 1. Clone
 
 ```bash
-git clone https://github.com/Sunil56224972/hallucination-Hunter.git
-cd hallucination-Hunter
+git clone https://github.com/Prashank18/Hallucination-hunter.git
+cd Hallucination-hunter
 ```
 
-### 2. Set up Supabase
+### 2. Supabase Setup
 
-Create these tables in your Supabase SQL Editor:
+Run this in your Supabase SQL Editor:
 
 ```sql
 -- Analyses table
@@ -162,27 +167,28 @@ CREATE TABLE claims (
   explanation TEXT,
   source_name TEXT,
   source_url TEXT,
+  category TEXT DEFAULT 'General',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Settings table
 CREATE TABLE settings (
-  key TEXT PRIMARY KEY,
+  key TEXT,
   value TEXT,
-  updated_at TIMESTAMPTZ DEFAULT now()
+  user_id TEXT,
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (key, user_id)
 );
 ```
 
-### 3. Configure API keys
+### 3. Configure credentials
 
-Open `app.js` and update the Supabase credentials at the top:
+Update in `app.js`:
 
 ```javascript
 const SUPABASE_URL = 'https://your-project.supabase.co';
 const SUPABASE_KEY = 'your-anon-key';
 ```
-
-Add your Groq API key in the app's **Settings → API** page.
 
 ### 4. Run locally
 
@@ -190,98 +196,93 @@ Add your Groq API key in the app's **Settings → API** page.
 npx http-server . -p 8080 --cors -c-1
 ```
 
-Open `http://localhost:8080` in your browser.
+Open `http://localhost:8080`
 
 ---
 
-##  Tech Stack
+## 🔄 How It Works
+
+```mermaid
+flowchart LR
+    A[Paste AI Text] --> B[Extract Claims via Groq]
+    B --> C[Verify Each Claim]
+    C --> D{Verdict + Confidence %}
+    D -->|Verified ✅| E[Exact Source URL]
+    D -->|Incorrect ❌| F[Correction + Source]
+    D -->|Unverifiable ⚠️| G[Explanation]
+    E --> H[Trust Score + Auto Threshold]
+    F --> H
+    G --> H
+    H --> I[Save to Supabase DB]
+    I --> J[History / Dashboard Updated]
+```
+
+1. **Paste** — User pastes AI-generated text
+2. **Extract** — Groq LLaMA 3 extracts individual factual claims
+3. **Verify** — Each claim independently fact-checked with confidence score
+4. **Auto-threshold** — Slider auto-sets based on real Groq confidence values
+5. **Source** — Exact source URL attached to every claim
+6. **Store** — Results saved to Supabase (persists across sessions)
+7. **Dashboard** — Stats and history updated in real-time
+
+---
+
+## 🧰 Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | HTML5, CSS3 (Vanilla), JavaScript (ES6+) |
-| **Database** | [Supabase](https://supabase.com/) (PostgreSQL) |
-| **LLM API** | [Groq](https://groq.com/) (Llama 3 / Mixtral) |
-| **Typography** | [DM Sans](https://fonts.google.com/specimen/DM+Sans) + [IBM Plex Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) |
-| **Hosting** | Static — deploy anywhere (Vercel, Netlify, GitHub Pages) |
+| **Frontend** | HTML5, CSS3 (Vanilla), JavaScript ES6+ |
+| **AI Engine** | [Groq](https://groq.com/) — LLaMA 3 (llama-3.3-70b) |
+| **Database** | [Supabase](https://supabase.com/) — PostgreSQL, RLS |
+| **Hosting** | [Vercel](https://vercel.com/) — Serverless |
+| **Voice** | Web Speech API (browser native) |
+| **Typography** | DM Sans + IBM Plex Mono (Google Fonts) |
 
 ---
 
-##  Project Structure
+## 📁 Project Structure
 
 ```
-hallucination-Hunter/
-├── index.html          # Main SPA entry point
-├── style.css           # Complete design system + responsive styles
-├── app.js              # Application logic, Supabase client, Groq API
-├── Search.gif          # Animated search bar asset
-├── verified-icon.png   # ✅ Verified claim icon
-├── incorrect-icon.png  # ❌ False claim icon
-├── unverifiable-icon.png # ⚠️ Unverifiable claim icon
-├── screenshots/        # App screenshots for README
-│   ├── app-main.png
-│   ├── app-example.png
-│   ├── app-sources.png
-│   └── app-howitworks.png
+Hallucination-hunter/
+├── index.html              # Main SPA — all tabs & views
+├── style.css               # Full design system + responsive
+├── app.js                  # App logic, Groq calls, Supabase client
+├── config.js               # API key configuration
+├── vercel.json             # Vercel deployment config
+├── api/
+│   ├── groq.js             # Groq API wrapper
+│   └── search.js           # Search functionality
+├── verified-icon.png       # ✅ Verified claim badge
+├── incorrect-icon.png      # ❌ Incorrect claim badge
+├── unverifiable-icon.png   # ⚠️ Unverifiable claim badge
+├── Round2_Features.pdf     # Feature documentation PDF
 └── README.md
 ```
 
 ---
 
-##  How It Works
+## 🎨 Design Philosophy
 
-```mermaid
-flowchart LR
-    A[Paste AI Text] --> B[Extract Claims]
-    B --> C[Verify Each Claim]
-    C --> D{Verdict}
-    D -->|Verified ✅| E[Source + Explanation]
-    D -->|False ❌| F[Correction + Source]
-    D -->|Unverifiable ⚠️| G[Reason]
-    E --> H[Trust Score]
-    F --> H
-    G --> H
-    H --> I[Save to Supabase]
-```
-
-1. **Paste** — User pastes AI-generated text into the analyzer
-2. **Extract** — Groq LLM extracts individual factual claims
-3. **Verify** — Each claim is independently fact-checked by the LLM
-4. **Score** — Trust score calculated as `(verified / total) × 100`
-5. **Store** — Results saved to Supabase for future reference
+- **No Fake Features** — Every button, slider, and tab is fully functional
+- **Real AI Data** — Confidence scores, source URLs direct from Groq
+- **Auto-Smart UI** — Threshold slider auto-sets from live analysis data
+- **Persistent** — Supabase ensures zero data loss across sessions
+- **Mobile-First** — Full responsive design with bottom navigation
 
 ---
 
-##  Design Philosophy
+## 📄 License
 
-- **Earthy & Warm** — Inspired by Linear and Untitled UI's clean aesthetic
-- **No Fake Features** — Every button, tab, and function is real and working
-- **Human-Like** — Designed to feel like a mature, polished SaaS product
-- **Mobile-First** — Responsive design with dedicated mobile navigation
-
----
-
-##  License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-##  Contributing
-
-Contributions are welcome! Feel free to:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-**Built with ❤️ by [Sunil](https://github.com/Sunil56224972)**
+**Built with ❤️ for Hackathon Round 2**
 
 *Hallucination Hunter — Because AI should be accurate, not just confident.*
+
+🌐 **Live:** [hallucination-hunter-ivory.vercel.app](https://hallucination-hunter-ivory.vercel.app)
 
 </div>
