@@ -1614,7 +1614,7 @@ function updateAccuracyTab(claims) {
     grid.innerHTML = buckets.map((count, i) => {
       const label  = `${i * 10}–${i * 10 + 9}%`;
       const height = Math.round((count / maxB) * 60);
-      const color  = i >= 8 ? '#1a7f64' : i >= 6 ? '#a16207' : '#b91c1c';
+      const color  = i >= 8 ? 'var(--green, #1a7f64)' : i >= 6 ? 'var(--amber, #a16207)' : 'var(--red, #b91c1c)';
       return `<div class="acc-hist-col" title="${label}: ${count} claim${count !== 1 ? 's' : ''}">
         <div class="acc-hist-bar" style="height:${height}px;background:${color}"></div>
         <div class="acc-hist-label">${i * 10}</div>
@@ -1627,16 +1627,14 @@ function updateAccuracyTab(claims) {
   if (list) {
     list.innerHTML = claims.map((c, i) => {
       const status    = c.status === 'verified' ? 'verified' : c.status === 'unverifiable' ? 'unverifiable' : 'false';
-      const icon      = status === 'verified' ? '✅' : status === 'unverifiable' ? '⚠️' : '❌';
-      const confColor = (c.confidence || 0) >= 80 ? '#1a7f64' : (c.confidence || 0) >= 60 ? '#a16207' : '#b91c1c';
       const shortText = (c.text || c.claim_text || '').slice(0, 90) + ((c.text || c.claim_text || '').length > 90 ? '…' : '');
-      return `<div class="acc-claim-row">
-        <div class="acc-claim-idx">#${i + 1}</div>
+      return `<div class="acc-claim-row row-${status}">
+        <div class="acc-claim-idx">${i + 1}</div>
         <div class="acc-claim-body">
           <div class="acc-claim-text">${shortText}</div>
           <div class="acc-claim-meta">
-            <span class="acc-verdict ${status}">${icon} ${status}</span>
-            <span class="acc-conf-pill" style="color:${confColor};border-color:${confColor}">${c.confidence || 0}%</span>
+            <span class="acc-verdict ${status}">${status}</span>
+            <span class="acc-conf-pill">${c.confidence || 0}%</span>
           </div>
         </div>
       </div>`;
