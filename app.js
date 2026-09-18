@@ -1571,7 +1571,7 @@ function updateAccuracyTab(claims) {
     const circumference = 2 * Math.PI * 34; // 213.6
     const dashOffset    = circumference * (1 - accuracy / 100);
     arc.style.strokeDashoffset = dashOffset;
-    arc.style.stroke = accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#f59e0b' : '#ef4444';
+    arc.style.stroke = accuracy >= 80 ? '#1a7f64' : accuracy >= 60 ? '#a16207' : '#b91c1c';
   }
 
   // ── Score number (count-up animation) ───────────────────────
@@ -1614,7 +1614,7 @@ function updateAccuracyTab(claims) {
     grid.innerHTML = buckets.map((count, i) => {
       const label  = `${i * 10}–${i * 10 + 9}%`;
       const height = Math.round((count / maxB) * 60);
-      const color  = i >= 8 ? '#22c55e' : i >= 6 ? '#f59e0b' : '#ef4444';
+      const color  = i >= 8 ? '#1a7f64' : i >= 6 ? '#a16207' : '#b91c1c';
       return `<div class="acc-hist-col" title="${label}: ${count} claim${count !== 1 ? 's' : ''}">
         <div class="acc-hist-bar" style="height:${height}px;background:${color}"></div>
         <div class="acc-hist-label">${i * 10}</div>
@@ -1628,7 +1628,7 @@ function updateAccuracyTab(claims) {
     list.innerHTML = claims.map((c, i) => {
       const status    = c.status === 'verified' ? 'verified' : c.status === 'unverifiable' ? 'unverifiable' : 'false';
       const icon      = status === 'verified' ? '✅' : status === 'unverifiable' ? '⚠️' : '❌';
-      const confColor = (c.confidence || 0) >= 80 ? '#22c55e' : (c.confidence || 0) >= 60 ? '#f59e0b' : '#ef4444';
+      const confColor = (c.confidence || 0) >= 80 ? '#1a7f64' : (c.confidence || 0) >= 60 ? '#a16207' : '#b91c1c';
       const shortText = (c.text || c.claim_text || '').slice(0, 90) + ((c.text || c.claim_text || '').length > 90 ? '…' : '');
       return `<div class="acc-claim-row">
         <div class="acc-claim-idx">#${i + 1}</div>

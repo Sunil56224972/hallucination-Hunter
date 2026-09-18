@@ -3030,14 +3030,14 @@ html {
 
 
 /* ══════════════════════════════════════════════════════
-   CURRENT ACCURACY RATE TAB
+   CURRENT ACCURACY RATE TAB  (uses site palette)
 ══════════════════════════════════════════════════════ */
 
-/* Tab pulse when new results arrive */
+/* Tab pulse — warm green flash */
 .tab.tab-pulse {
-  background: #f0fdf4;
-  border-color: #22c55e;
-  color: #16a34a;
+  background: var(--green-bg, #e8f5f0);
+  border-color: var(--green, #1a7f64);
+  color: var(--green, #1a7f64);
   animation: tabPulse 0.4s ease 2;
 }
 @keyframes tabPulse {
@@ -3054,10 +3054,10 @@ html {
   gap: 12px;
   padding: 60px 24px;
   text-align: center;
-  color: #8c8279;
+  color: var(--text-400, #8c857e);
 }
-.acc-empty-state h3 { margin: 0; font-size: 16px; font-weight: 600; color: #4a4540; }
-.acc-empty-state p  { margin: 0; font-size: 14px; }
+.acc-empty-state h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-700, #3d3832); }
+.acc-empty-state p  { margin: 0; font-size: 14px; line-height: 1.6; }
 
 /* Score row */
 .acc-score-row {
@@ -3065,9 +3065,9 @@ html {
   align-items: center;
   gap: 32px;
   padding: 24px;
-  background: #faf8f5;
-  border-radius: 12px;
-  border: 1px solid #e8e2da;
+  background: var(--bg-warm, #f0ebe4);
+  border-radius: var(--r-lg, 14px);
+  border: 1px solid var(--border-light, #e0dbd4);
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
@@ -3087,29 +3087,30 @@ html {
   justify-content: center;
   line-height: 1;
 }
-.acc-score-num  { font-size: 26px; font-weight: 700; color: #1a1512; }
-.acc-score-pct  { font-size: 13px; font-weight: 600; color: #6c6560; }
-.acc-score-label{ font-size: 10px; color: #9c948c; margin-top: 2px; }
+.acc-score-num  { font-size: 26px; font-weight: 700; color: var(--text-900, #1a1714); font-family: var(--sans); }
+.acc-score-pct  { font-size: 13px; font-weight: 600; color: var(--text-500, #6b6560); }
+.acc-score-label{ font-size: 10px; color: var(--text-300, #b0a99f); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
 
 .acc-meta { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 160px; }
-.acc-meta-item { display: flex; justify-content: space-between; font-size: 13px; }
-.acc-meta-label { color: #7a7269; }
-.acc-meta-val   { font-weight: 600; color: #1a1512; }
+.acc-meta-item { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border-light, #e0dbd4); }
+.acc-meta-item:last-child { border-bottom: none; }
+.acc-meta-label { color: var(--text-500, #6b6560); }
+.acc-meta-val   { font-weight: 600; color: var(--text-900, #1a1714); }
 
 /* Breakdown section */
 .acc-breakdown {
-  background: #fff;
-  border: 1px solid #e8e2da;
-  border-radius: 10px;
+  background: var(--card, #ffffff);
+  border: 1px solid var(--border-light, #e0dbd4);
+  border-radius: var(--r-md, 10px);
   padding: 18px 20px;
   margin-bottom: 16px;
 }
 .acc-breakdown-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #9c948c;
+  letter-spacing: 0.08em;
+  color: var(--text-400, #8c857e);
   margin-bottom: 14px;
 }
 .acc-bar-item {
@@ -3124,7 +3125,7 @@ html {
   gap: 6px;
   width: 110px;
   font-size: 13px;
-  color: #4a4540;
+  color: var(--text-700, #3d3832);
   flex-shrink: 0;
 }
 .acc-dot {
@@ -3133,14 +3134,14 @@ html {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.acc-dot.verified     { background: #22c55e; }
-.acc-dot.unverifiable { background: #f59e0b; }
-.acc-dot.false        { background: #ef4444; }
+.acc-dot.verified     { background: var(--green, #1a7f64); }
+.acc-dot.unverifiable { background: var(--amber, #a16207); }
+.acc-dot.false        { background: var(--red, #b91c1c); }
 
 .acc-bar-track {
   flex: 1;
   height: 8px;
-  background: #ede8e2;
+  background: var(--bg-warm, #f0ebe4);
   border-radius: 99px;
   overflow: hidden;
 }
@@ -3150,10 +3151,10 @@ html {
   width: 0;
   transition: width 0.8s ease;
 }
-.verified-fill     { background: #22c55e; }
-.unverifiable-fill { background: #f59e0b; }
-.false-fill        { background: #ef4444; }
-.acc-bar-count { font-size: 13px; font-weight: 600; min-width: 20px; text-align: right; color: #4a4540; }
+.verified-fill     { background: var(--green, #1a7f64); }
+.unverifiable-fill { background: var(--amber, #a16207); }
+.false-fill        { background: var(--red, #b91c1c); }
+.acc-bar-count { font-size: 13px; font-weight: 600; min-width: 20px; text-align: right; color: var(--text-700, #3d3832); }
 
 /* Histogram */
 .acc-conf-grid {
@@ -3178,7 +3179,7 @@ html {
 }
 .acc-hist-label {
   font-size: 9px;
-  color: #9c948c;
+  color: var(--text-400, #8c857e);
 }
 
 /* Per-claim list */
@@ -3188,23 +3189,23 @@ html {
   gap: 10px;
   align-items: flex-start;
   padding: 10px 12px;
-  background: #faf8f5;
-  border-radius: 8px;
-  border: 1px solid #e8e2da;
+  background: var(--bg, #f7f4f0);
+  border-radius: var(--r-sm, 6px);
+  border: 1px solid var(--border-light, #e0dbd4);
   transition: background 0.15s;
 }
-.acc-claim-row:hover { background: #f3ede8; }
+.acc-claim-row:hover { background: var(--bg-warm, #f0ebe4); }
 .acc-claim-idx {
   font-size: 11px;
   font-weight: 600;
-  color: #9c948c;
+  color: var(--text-400, #8c857e);
   min-width: 24px;
   padding-top: 2px;
 }
 .acc-claim-body { flex: 1; }
 .acc-claim-text {
   font-size: 13px;
-  color: #2a2420;
+  color: var(--text-900, #1a1714);
   line-height: 1.5;
   margin-bottom: 6px;
 }
@@ -3216,9 +3217,9 @@ html {
   border-radius: 99px;
   text-transform: capitalize;
 }
-.acc-verdict.verified     { background: #dcfce7; color: #16a34a; }
-.acc-verdict.unverifiable { background: #fef3c7; color: #92400e; }
-.acc-verdict.false        { background: #fee2e2; color: #dc2626; }
+.acc-verdict.verified     { background: var(--green-bg, #e8f5f0); color: var(--green, #1a7f64); }
+.acc-verdict.unverifiable { background: var(--amber-bg, #fef6e7); color: var(--amber, #a16207); }
+.acc-verdict.false        { background: var(--red-bg, #fef2f2); color: var(--red, #b91c1c); }
 .acc-conf-pill {
   font-size: 11px;
   font-weight: 600;
