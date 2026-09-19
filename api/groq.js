@@ -10,11 +10,12 @@ const RATE_LIMIT_MAX_REQUESTS = 10;
 const MAX_BODY_SIZE_BYTES = 50 * 1024;
 const MAX_PROMPT_LENGTH = 20000;
 
-// Allowed origins (vercel.app subdomains + localhost for dev)
+// Allowed origins (vercel.app subdomains + localhost for dev + chrome extension)
 const ALLOWED_ORIGINS = [
   /^https:\/\/hallucination-hunter[a-z0-9\-]*\.vercel\.app$/,
   /^http:\/\/localhost(:\d+)?$/,
-  /^http:\/\/127\.0\.0\.1(:\d+)?$/
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^chrome-extension:\/\//
 ];
 
 function getRateLimitKey(req) {

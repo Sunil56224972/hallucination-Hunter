@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hallucination Hunter — Technical Documentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #fff; color: #1a1714; line-height: 1.7; padding: 50px 60px; max-width: 900px; margin: 0 auto; }
+  
+  /* Cover page */
+  .cover { text-align: center; padding: 120px 0 80px; page-break-after: always; }
+  .cover .logo { font-size: 72px; margin-bottom: 20px; }
+  .cover h1 { font-size: 36px; font-weight: 800; color: #3d3832; margin-bottom: 10px; }
+  .cover .subtitle { font-size: 18px; color: #6b6560; margin-bottom: 40px; }
+  .cover .meta { font-size: 13px; color: #8a7e70; line-height: 2; }
+  .cover .divider { width: 80px; height: 3px; background: #3d3832; margin: 30px auto; }
+
+  h1 { font-size: 28px; font-weight: 800; color: #3d3832; margin: 50px 0 10px; padding-bottom: 8px; border-bottom: 3px solid #e8e0d4; }
+  h2 { font-size: 22px; font-weight: 700; color: #3d3832; margin: 35px 0 10px; }
+  h3 { font-size: 17px; font-weight: 600; color: #4a4540; margin: 25px 0 8px; }
+  p { margin: 8px 0 12px; color: #333; font-size: 14px; }
+  
+  .highlight-box { background: #f7f4f0; border-left: 4px solid #3d3832; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+  .highlight-box h4 { font-size: 14px; font-weight: 700; color: #3d3832; margin-bottom: 6px; }
+  .highlight-box p { margin: 4px 0; font-size: 13px; }
+
+  .problem-box { background: #fff5f5; border-left: 4px solid #c62828; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+  .solution-box { background: #f1f8e9; border-left: 4px solid #2e7d32; padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+  .problem-box h4, .solution-box h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .problem-box h4 { color: #c62828; }
+  .solution-box h4 { color: #2e7d32; }
+  .problem-box p, .solution-box p { font-size: 13px; margin: 4px 0; }
+
+  ul, ol { margin: 8px 0 12px 24px; font-size: 14px; }
+  li { margin: 4px 0; }
+
+  .diagram { background: #fafafa; border: 1px solid #e0ddd6; border-radius: 10px; padding: 24px; margin: 20px 0; text-align: center; font-family: monospace; font-size: 13px; line-height: 2; }
+  .arrow { color: #3d3832; font-weight: bold; }
+  .box { display: inline-block; background: #f7f4f0; border: 2px solid #3d3832; border-radius: 8px; padding: 6px 14px; margin: 4px; font-weight: 600; }
+  .box-green { display: inline-block; background: #e8f5e9; border: 2px solid #2e7d32; border-radius: 8px; padding: 6px 14px; margin: 4px; font-weight: 600; color: #2e7d32; }
+  .box-blue { display: inline-block; background: #e3f2fd; border: 2px solid #1565c0; border-radius: 8px; padding: 6px 14px; margin: 4px; font-weight: 600; color: #1565c0; }
+  .box-red { display: inline-block; background: #ffebee; border: 2px solid #c62828; border-radius: 8px; padding: 6px 14px; margin: 4px; font-weight: 600; color: #c62828; }
+  .box-orange { display: inline-block; background: #fff8e1; border: 2px solid #e65100; border-radius: 8px; padding: 6px 14px; margin: 4px; font-weight: 600; color: #e65100; }
+
+  code { background: #f0ede6; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: 'Consolas', monospace; }
+  pre { background: #2d2820; color: #f7f4f0; padding: 16px 20px; border-radius: 8px; margin: 12px 0; font-size: 12px; overflow-x: auto; font-family: 'Consolas', monospace; line-height: 1.6; }
+  
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th { background: #3d3832; color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 10px 14px; border-bottom: 1px solid #e0ddd6; }
+  tr:nth-child(even) { background: #faf8f5; }
+
+  .page-break { page-break-before: always; }
+  .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #e8e0d4; font-size: 12px; color: #8a7e70; text-align: center; }
+
+  @media print {
+    body { padding: 40px 50px; }
+    .page-break { page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover">
+  <div class="logo">🔍</div>
+  <h1>Hallucination Hunter</h1>
+  <p class="subtitle">Technical Documentation</p>
+  <div class="divider"></div>
+  <div class="meta">
+    <strong>Topics Covered:</strong><br>
+    1. How LLaMA AI Model Works (Full Explanation)<br>
+    2. How APK Was Built from a Web App (Capacitor)<br>
+    3. Complete Data Flow: User → AI → User<br>
+    4. Problem & Solution Architecture<br><br>
+    <strong>Developer:</strong> Sunil Dev<br>
+    <strong>Project:</strong> Hallucination Hunter — LLM Fact Verification Tool<br>
+    <strong>Date:</strong> September 2026
+  </div>
+</div>
+
+<!-- SECTION 1: HOW LLaMA WORKS -->
+<h1>1. How LLaMA AI Model Works</h1>
+
+<h2>1.1 What is LLaMA?</h2>
+<p>LLaMA stands for <strong>"Large Language Model Meta AI"</strong>. It is an open-source AI model created by <strong>Meta (Facebook)</strong>. LLaMA 3 is the version we use in Hallucination Hunter.</p>
+
+<div class="highlight-box">
+  <h4>💡 Simple Explanation</h4>
+  <p>Think of LLaMA like a super-intelligent text reader. You give it text, and it understands it like a human — it can break sentences into facts, check if they sound true, and explain why something might be wrong.</p>
+</div>
+
+<h2>1.2 LLaMA Architecture (Transformer Model)</h2>
+<p>LLaMA is based on the <strong>Transformer architecture</strong>, which is the foundation of all modern AI language models. Here's how it works step by step:</p>
+
+<h3>Step 1: Tokenization (Breaking Text into Pieces)</h3>
+<p>When you type "The Earth orbits the Sun", LLaMA doesn't read it like a human. It breaks the text into small pieces called <strong>tokens</strong>:</p>
+<pre>"The Earth orbits the Sun"
+  → ["The", " Earth", " orbits", " the", " Sun"]
+  → [464, 7948, 103937, 279, 8219]  (number IDs)</pre>
+<p>Each token is converted to a number. The model only understands numbers, not words.</p>
+
+<h3>Step 2: Embeddings (Numbers → Meaning)</h3>
+<p>Each token number is converted into a <strong>vector</strong> — a list of 4,096 numbers that capture the meaning of that word. Words with similar meanings have similar vectors.</p>
+<pre>"King"  → [0.82, -0.41, 0.33, 0.91, ...]  (4,096 numbers)
+"Queen" → [0.79, -0.38, 0.35, 0.88, ...]  (similar!)</pre>
+
+<h3>Step 3: Self-Attention (Understanding Relationships)</h3>
+<p>This is the magic of LLaMA. <strong>Self-attention</strong> allows each word to look at every other word and understand how they relate:</p>
+<ul>
+  <li>In "The <strong>bank</strong> of the <strong>river</strong>" — the word "bank" looks at "river" and understands it means "river bank" (not a financial bank).</li>
+  <li>LLaMA 3 has <strong>32 attention heads</strong> — it looks at relationships from 32 different perspectives simultaneously.</li>
+</ul>
+
+<h3>Step 4: Feed-Forward Network (Deep Thinking)</h3>
+<p>After attention, the data passes through dense neural network layers that process the combined information. This is where the model "thinks" about what the text means.</p>
+
+<h3>Step 5: Layer Stacking (80 Layers Deep)</h3>
+<p>Steps 3 and 4 repeat <strong>80 times</strong> in LLaMA 3 (80 transformer layers). Each layer adds deeper understanding:</p>
+<ul>
+  <li><strong>Layer 1-10:</strong> Basic grammar and word patterns</li>
+  <li><strong>Layer 11-40:</strong> Sentence meaning and context</li>
+  <li><strong>Layer 41-60:</strong> Facts, knowledge, and reasoning</li>
+  <li><strong>Layer 61-80:</strong> Complex logic and final output</li>
+</ul>
+
+<h3>Step 6: Output Generation</h3>
+<p>The final layer produces a probability for every possible next token. The model picks the most likely token, adds it to the text, and repeats until done.</p>
+
+<div class="diagram">
+  <span class="box">Input Text</span>
+  <span class="arrow"> → </span>
+  <span class="box">Tokenizer</span>
+  <span class="arrow"> → </span>
+  <span class="box">Embeddings</span>
+  <span class="arrow"> → </span>
+  <span class="box-blue">Self-Attention ×80</span>
+  <span class="arrow"> → </span>
+  <span class="box-green">Output</span>
+</div>
+
+<h2>1.3 LLaMA 3 Specifications</h2>
+<table>
+  <tr><th>Feature</th><th>LLaMA 3 (8B)</th><th>LLaMA 3 (70B)</th></tr>
+  <tr><td>Parameters</td><td>8 Billion</td><td>70 Billion</td></tr>
+  <tr><td>Training Data</td><td>15 Trillion tokens</td><td>15 Trillion tokens</td></tr>
+  <tr><td>Context Window</td><td>8,192 tokens</td><td>8,192 tokens</td></tr>
+  <tr><td>Layers</td><td>32</td><td>80</td></tr>
+  <tr><td>Attention Heads</td><td>32</td><td>64</td></tr>
+  <tr><td>Embedding Size</td><td>4,096</td><td>8,192</td></tr>
+  <tr><td>License</td><td>Open Source (Meta)</td><td>Open Source (Meta)</td></tr>
+</table>
+
+<h2>1.4 Why We Use Groq for LLaMA</h2>
+<p>LLaMA is just the model — it needs hardware to run. <strong>Groq</strong> is a company that has special AI chips called <strong>LPU (Language Processing Units)</strong> that run LLaMA extremely fast.</p>
+
+<div class="highlight-box">
+  <h4>⚡ Speed Comparison</h4>
+  <p><strong>NVIDIA GPU:</strong> ~30-50 tokens/second</p>
+  <p><strong>Groq LPU:</strong> ~500-800 tokens/second (10-15x faster!)</p>
+  <p>This is why our app gives results in under 2 seconds.</p>
+</div>
+
+<!-- SECTION 2: HOW APK WAS BUILT -->
+<div class="page-break"></div>
+<h1>2. How APK Was Built from a Web App</h1>
+
+<h2>2.1 The Problem</h2>
+<div class="problem-box">
+  <h4>❌ Problem</h4>
+  <p>We built Hallucination Hunter as a web app (HTML + CSS + JavaScript). But users want to install it on their Android phones like a real app from the home screen — not just visit a website.</p>
+</div>
+
+<h2>2.2 The Solution: Capacitor</h2>
+<div class="solution-box">
+  <h4>✅ Solution</h4>
+  <p>We used <strong>Capacitor</strong> (by Ionic) to wrap our web app inside a native Android container. The web app runs inside an Android WebView — it's like a browser without the address bar, running as a standalone app.</p>
+</div>
+
+<h2>2.3 What is Capacitor?</h2>
+<p>Capacitor is a tool that takes your web app (HTML/CSS/JS) and wraps it inside a native Android or iOS app. The key benefits:</p>
+<ul>
+  <li><strong>Same code</strong> — No need to rewrite in Java/Kotlin</li>
+  <li><strong>Native features</strong> — Access to camera, GPS, notifications</li>
+  <li><strong>App store ready</strong> — Generates proper APK file</li>
+  <li><strong>WebView</strong> — Uses Android's built-in browser engine</li>
+</ul>
+
+<h2>2.4 Step-by-Step APK Build Process</h2>
+
+<h3>Step 1: Initialize Capacitor Project</h3>
+<pre>npm init -y
+npm install @capacitor/core @capacitor/cli
+npx cap init "Hallucination Hunter" "com.sunildev.hallucinationhunter"</pre>
+<p>This creates a <code>capacitor.config.ts</code> file that tells Capacitor where to find our web files.</p>
+
+<h3>Step 2: Add Android Platform</h3>
+<pre>npm install @capacitor/android
+npx cap add android</pre>
+<p>This creates an <code>android/</code> folder with a full Android Studio project — including <code>MainActivity.java</code>, <code>AndroidManifest.xml</code>, and Gradle build files.</p>
+
+<h3>Step 3: Copy Web Assets</h3>
+<pre>npx cap copy android</pre>
+<p>This copies all web files (HTML, CSS, JS, images, icons) into:</p>
+<pre>android/app/src/main/assets/public/
+  ├── index.html
+  ├── app.js
+  ├── style.css
+  ├── config.js
+  ├── verified-icon.png
+  ├── unverifiable-icon.png
+  └── incorrect-icon.png</pre>
+
+<h3>Step 4: Configure Android App</h3>
+<p>We customize these files for branding:</p>
+<table>
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>AndroidManifest.xml</code></td><td>App name, permissions, orientation</td></tr>
+  <tr><td><code>styles.xml</code></td><td>Splash screen, status bar color</td></tr>
+  <tr><td><code>colors.xml</code></td><td>Theme colors (warm brown palette)</td></tr>
+  <tr><td><code>mipmap-*/ic_launcher.png</code></td><td>App icon in 5 sizes (48-192px)</td></tr>
+</table>
+
+<h3>Step 5: Build the APK</h3>
+<pre>cd android
+./gradlew assembleDebug</pre>
+<p>Gradle compiles everything into a single <code>.apk</code> file that can be installed on any Android phone.</p>
+
+<div class="diagram">
+  <span class="box">Web App (HTML/CSS/JS)</span>
+  <span class="arrow"> → </span>
+  <span class="box">Capacitor</span>
+  <span class="arrow"> → </span>
+  <span class="box-blue">Android WebView</span>
+  <span class="arrow"> → </span>
+  <span class="box-green">APK File</span>
+</div>
+
+<h2>2.5 How the App Runs on Phone</h2>
+<div class="diagram">
+  <div style="text-align:left; padding: 0 20px;">
+    <p><strong>1.</strong> User taps the app icon on their home screen</p>
+    <p><strong>2.</strong> Android opens <code>MainActivity.java</code></p>
+    <p><strong>3.</strong> MainActivity creates a <strong>WebView</strong> (embedded browser)</p>
+    <p><strong>4.</strong> WebView loads <code>index.html</code> from <code>assets/public/</code></p>
+    <p><strong>5.</strong> The web app runs exactly like it does in Chrome</p>
+    <p><strong>6.</strong> User sees a full native-looking app with bottom navigation</p>
+  </div>
+</div>
+
+<!-- SECTION 3: DATA FLOW -->
+<div class="page-break"></div>
+<h1>3. Data Flow: User → AI → User</h1>
+
+<h2>3.1 Complete Data Transfer Journey</h2>
+<p>Here's exactly what happens when a user clicks "Analyze" — every step of the data journey:</p>
+
+<div class="diagram">
+  <span class="box">User types text</span><br>
+  <span class="arrow">↓</span><br>
+  <span class="box">Browser (JavaScript)</span><br>
+  <span class="arrow">↓ HTTPS POST</span><br>
+  <span class="box-blue">Vercel Serverless Function</span><br>
+  <span class="arrow">↓ API Call</span><br>
+  <span class="box-orange">Groq Cloud (LLaMA 3)</span><br>
+  <span class="arrow">↓ JSON Response</span><br>
+  <span class="box-blue">Vercel Serverless Function</span><br>
+  <span class="arrow">↓ HTTPS Response</span><br>
+  <span class="box">Browser (JavaScript)</span><br>
+  <span class="arrow">↓</span><br>
+  <span class="box-green">Results displayed to User</span>
+</div>
+
+<h2>3.2 Step-by-Step Technical Breakdown</h2>
+
+<h3>Step 1: User Input (Frontend)</h3>
+<p>The user types or pastes AI-generated text into the textarea and clicks "Analyze".</p>
+<pre>// app.js — When user clicks Analyze
+const userText = document.getElementById('main-input').value;
+// Text is stored in a JavaScript variable in the browser</pre>
+
+<h3>Step 2: Frontend → Vercel API (HTTPS POST)</h3>
+<p>The browser sends the text to our serverless API using a <code>fetch()</code> request:</p>
+<pre>// app.js — Sending data to server
+const response = await fetch('/api/groq', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    text: userText,
+    action: 'analyze'    // tells API what to do
+  })
+});</pre>
+
+<div class="highlight-box">
+  <h4>🔒 Security Note</h4>
+  <p>The API key for Groq is stored on the server (Vercel environment variable), never exposed to the user's browser. This prevents API key theft.</p>
+</div>
+
+<h3>Step 3: Vercel Serverless Function (Backend)</h3>
+<p>Our <code>api/groq.js</code> file receives the request on Vercel's servers and forwards it to Groq:</p>
+<pre>// api/groq.js — Server-side code
+export default async function handler(req, res) {
+  const { text, action } = req.body;
+  
+  // Build the prompt for LLaMA
+  const prompt = `Extract all factual claims from this text. 
+  For each claim, determine if it is verified, unverifiable, 
+  or incorrect. Return as JSON array.
+  
+  Text: "${text}"`;
+  
+  // Send to Groq API
+  const groqResponse = await fetch(
+    'https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'llama3-70b-8192',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1  // Low = more factual, less creative
+    })
+  });
+}</pre>
+
+<h3>Step 4: Groq Cloud Processes with LLaMA 3</h3>
+<p>Inside Groq's data center, this happens:</p>
+<ol>
+  <li><strong>Tokenize:</strong> The prompt is broken into tokens</li>
+  <li><strong>Process:</strong> LLaMA 3 (70B) runs through all 80 transformer layers</li>
+  <li><strong>Extract Claims:</strong> The model identifies each factual statement</li>
+  <li><strong>Verify Each Claim:</strong> Based on its training data (15 trillion tokens of internet text), it determines if each claim is true, false, or unverifiable</li>
+  <li><strong>Generate JSON:</strong> The model outputs structured JSON with claims, verdicts, and confidence scores</li>
+</ol>
+
+<h3>Step 5: Groq → Vercel (JSON Response)</h3>
+<p>Groq returns a structured JSON response:</p>
+<pre>{
+  "claims": [
+    {
+      "claim": "The Earth orbits the Sun",
+      "status": "verified",
+      "confidence": 98,
+      "source": "NASA",
+      "category": "Science",
+      "explanation": "Confirmed by centuries of astronomical observation"
+    },
+    {
+      "claim": "Python was created in 2005",
+      "status": "false",
+      "confidence": 96,
+      "correction": "Python was created in 1991 by Guido van Rossum",
+      "source": "Wikipedia"
+    }
+  ],
+  "trust_score": 67
+}</pre>
+
+<h3>Step 6: Vercel → Browser (HTTPS Response)</h3>
+<p>Our serverless function parses the response and sends clean JSON back to the browser:</p>
+<pre>// api/groq.js — Send results back
+const data = await groqResponse.json();
+const claims = JSON.parse(data.choices[0].message.content);
+res.status(200).json({ claims, trust_score: calculateTrust(claims) });</pre>
+
+<h3>Step 7: Browser Displays Results (Frontend)</h3>
+<p>The JavaScript receives the JSON and builds the visual UI:</p>
+<pre>// app.js — Display results
+const data = await response.json();
+
+// Draw trust score donut chart
+drawDonutChart(data.trust_score);
+
+// Build claim cards with color-coded badges
+data.claims.forEach(claim => {
+  const card = createClaimCard(claim);
+  // Green badge = verified, Red = incorrect, Yellow = unverifiable
+  claimsGrid.appendChild(card);
+});</pre>
+
+<h2>3.3 Complete Data Flow Summary</h2>
+<table>
+  <tr><th>Step</th><th>From</th><th>To</th><th>Data</th><th>Protocol</th></tr>
+  <tr><td>1</td><td>User</td><td>Browser</td><td>Raw text</td><td>Keyboard input</td></tr>
+  <tr><td>2</td><td>Browser</td><td>Vercel</td><td>JSON { text }</td><td>HTTPS POST</td></tr>
+  <tr><td>3</td><td>Vercel</td><td>Groq</td><td>Prompt + text</td><td>HTTPS POST</td></tr>
+  <tr><td>4</td><td>Groq (LLaMA)</td><td>Groq</td><td>Internal processing</td><td>LPU inference</td></tr>
+  <tr><td>5</td><td>Groq</td><td>Vercel</td><td>JSON claims</td><td>HTTPS Response</td></tr>
+  <tr><td>6</td><td>Vercel</td><td>Browser</td><td>JSON results</td><td>HTTPS Response</td></tr>
+  <tr><td>7</td><td>Browser</td><td>User</td><td>Visual UI cards</td><td>DOM rendering</td></tr>
+</table>
+
+<!-- SECTION 4: PROBLEM & SOLUTION -->
+<div class="page-break"></div>
+<h1>4. Problem & Solution</h1>
+
+<h2>4.1 The Core Problem</h2>
+<div class="problem-box">
+  <h4>❌ AI Hallucination Problem</h4>
+  <p><strong>What:</strong> Large Language Models (ChatGPT, Gemini, Claude) generate text that sounds confident and accurate, but sometimes contain completely fabricated "facts" — called hallucinations.</p>
+  <p><strong>Why it's dangerous:</strong> Students, professionals, and journalists use AI-generated text without fact-checking, spreading misinformation unknowingly.</p>
+  <p><strong>Scale:</strong> Studies show LLMs hallucinate in 5-15% of their factual claims. With billions of daily AI queries, this means millions of false facts spread every day.</p>
+</div>
+
+<h2>4.2 Existing Problems (Before Our Solution)</h2>
+
+<div class="problem-box">
+  <h4>❌ Problem 1: Manual fact-checking is too slow</h4>
+  <p>A single article with 20 claims would take 30-60 minutes to verify by hand using Google searches.</p>
+</div>
+
+<div class="problem-box">
+  <h4>❌ Problem 2: No automated claim-level verification</h4>
+  <p>Tools like GPTZero only detect IF text is AI-generated, not WHICH specific facts are wrong.</p>
+</div>
+
+<div class="problem-box">
+  <h4>❌ Problem 3: Users can't tell which parts are true</h4>
+  <p>A paragraph might have 8 true facts and 2 false ones — but it all reads the same. There's no way to visually see which claims are trusted.</p>
+</div>
+
+<div class="problem-box">
+  <h4>❌ Problem 4: No confidence scoring</h4>
+  <p>Even when you fact-check, you don't know HOW confident the verification is. Is it 60% sure or 99% sure?</p>
+</div>
+
+<h2>4.3 Our Solution: Hallucination Hunter</h2>
+
+<div class="solution-box">
+  <h4>✅ Solution 1: Automated claim extraction</h4>
+  <p>LLaMA 3 automatically extracts every factual claim from the text in under 2 seconds — no manual work needed.</p>
+</div>
+
+<div class="solution-box">
+  <h4>✅ Solution 2: Claim-level verification</h4>
+  <p>Each individual claim gets its own verdict: Verified ✅, Unverifiable ⚠️, or Incorrect ❌. Not just "AI-generated" — but specifically which facts are wrong.</p>
+</div>
+
+<div class="solution-box">
+  <h4>✅ Solution 3: Visual color-coded results</h4>
+  <p>Green starburst badge = verified, Yellow = unverifiable, Red = incorrect. Users can instantly see which claims to trust at a glance.</p>
+</div>
+
+<div class="solution-box">
+  <h4>✅ Solution 4: Confidence scoring with source attribution</h4>
+  <p>Every claim gets a confidence percentage (0-100%) and links to the trusted source that was used to verify it (Wikipedia, NASA, WHO, etc.).</p>
+</div>
+
+<div class="solution-box">
+  <h4>✅ Solution 5: Overall Trust Score</h4>
+  <p>An animated donut chart shows the overall trustworthiness of the entire text — making it instantly clear whether the AI output is reliable.</p>
+</div>
+
+<h2>4.4 Technology Solution Architecture</h2>
+<div class="diagram">
+  <span class="box-red">Problem: AI Hallucinations</span><br><br>
+  <span class="arrow">↓ solved by ↓</span><br><br>
+  <span class="box">Frontend (HTML/CSS/JS)</span>
+  <span class="arrow"> + </span>
+  <span class="box-blue">Backend (Vercel Serverless)</span>
+  <span class="arrow"> + </span>
+  <span class="box-orange">AI (Groq + LLaMA 3)</span><br><br>
+  <span class="arrow">↓ delivers ↓</span><br><br>
+  <span class="box-green">Claim-level fact verification with visual trust scores</span>
+</div>
+
+<h2>4.5 Key Differentiators</h2>
+<table>
+  <tr><th>Feature</th><th>Other Tools</th><th>Hallucination Hunter</th></tr>
+  <tr><td>Detection Level</td><td>Document-level only</td><td>Claim-level (each fact)</td></tr>
+  <tr><td>Output</td><td>"AI-generated: Yes/No"</td><td>Verified / Unverifiable / Incorrect per claim</td></tr>
+  <tr><td>Speed</td><td>10-30 seconds</td><td>Under 2 seconds (Groq LPU)</td></tr>
+  <tr><td>Source Attribution</td><td>None</td><td>40+ trusted sources linked</td></tr>
+  <tr><td>Confidence Score</td><td>None</td><td>0-100% per claim</td></tr>
+  <tr><td>Export</td><td>None</td><td>PDF, Copy, Share link</td></tr>
+  <tr><td>Platform</td><td>Web only</td><td>Web + Android APK</td></tr>
+  <tr><td>Cost</td><td>Paid subscription</td><td>Free</td></tr>
+</table>
+
+<div class="footer">
+  <p><strong>Hallucination Hunter</strong> — Technical Documentation<br>
+  Developer: Sunil Dev | GitHub: Sunil56224972/hallucination-Hunter<br>
+  Built with HTML5, JavaScript, Groq API (LLaMA 3), Capacitor, Vercel</p>
+</div>
+
+</body>
+</html>

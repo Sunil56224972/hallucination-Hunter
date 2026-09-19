@@ -1,0 +1,409 @@
+/* ==========================================
+   Hallucination Hunter — Chrome Extension
+   Warm Brown Monochrome Palette
+   ========================================== */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 400px;
+  min-height: 200px;
+  max-height: 580px;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  background: #faf8f5;
+  color: #3d3832;
+}
+
+/* Scrollbar */
+body::-webkit-scrollbar { width: 5px; }
+body::-webkit-scrollbar-track { background: transparent; }
+body::-webkit-scrollbar-thumb { background: #c4bdb3; border-radius: 10px; }
+
+/* ── Header ── */
+.hh-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #3d3832;
+  color: #f7f4f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.hh-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hh-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.hh-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #c4bdb3;
+}
+
+/* ── Input Area ── */
+.hh-input-area {
+  padding: 14px 16px 8px;
+}
+
+#hh-text-input {
+  width: 100%;
+  min-height: 90px;
+  max-height: 150px;
+  resize: vertical;
+  border: 2px solid #e0ddd6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #3d3832;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#hh-text-input:focus {
+  border-color: #3d3832;
+}
+
+#hh-text-input::placeholder {
+  color: #a89e91;
+}
+
+.hh-input-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Buttons ── */
+.hh-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: #3d3832;
+  color: #f7f4f0;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hh-btn-primary:hover {
+  background: #2a2520;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(61,56,50,0.3);
+}
+
+.hh-btn-primary:active {
+  transform: translateY(0);
+}
+
+.hh-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.hh-btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: none;
+  color: #8a7e70;
+  border: 1.5px solid #d5cfc5;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hh-btn-secondary:hover {
+  border-color: #3d3832;
+  color: #3d3832;
+}
+
+/* ── Auto-detect indicator ── */
+.hh-auto-detect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 16px 8px;
+  padding: 6px 10px;
+  background: #f1f8e9;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #2e7d32;
+  font-weight: 500;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+/* ── Loading ── */
+.hh-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  font-size: 13px;
+  color: #8a7e70;
+}
+
+.hh-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid #e0ddd6;
+  border-top-color: #3d3832;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error ── */
+.hh-error {
+  margin: 8px 16px;
+  padding: 10px 14px;
+  background: #fff5f5;
+  border: 1px solid #ffcdd2;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #c62828;
+}
+
+/* ── Results ── */
+.hh-results {
+  padding: 0 16px 8px;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Trust Bar */
+.hh-trust-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1.5px solid #e0ddd6;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.hh-trust-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a7e70;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.hh-trust-track {
+  flex: 1;
+  height: 8px;
+  background: #eae6df;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.hh-trust-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #c62828, #e65100, #f9a825, #2e7d32);
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hh-trust-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #3d3832;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Summary Badges */
+.hh-summary {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.hh-summary-badge {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.hh-summary-badge span {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.hh-verified {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.hh-unverifiable {
+  background: #fff8e1;
+  color: #e65100;
+  border: 1px solid #ffe0b2;
+}
+
+.hh-incorrect {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+/* Claims List */
+.hh-claims-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hh-claim-card {
+  background: #fff;
+  border: 1.5px solid #e0ddd6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  transition: all 0.2s;
+  animation: fadeSlideIn 0.3s ease both;
+}
+
+.hh-claim-card:hover {
+  border-color: #c4bdb3;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.hh-claim-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hh-claim-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hh-claim-badge.verified {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.hh-claim-badge.unverifiable {
+  background: #fff8e1;
+  color: #e65100;
+}
+
+.hh-claim-badge.incorrect {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.hh-claim-status {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.hh-claim-status.verified { color: #2e7d32; }
+.hh-claim-status.unverifiable { color: #e65100; }
+.hh-claim-status.incorrect { color: #c62828; }
+
+.hh-claim-conf {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a7e70;
+}
+
+.hh-claim-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #3d3832;
+  margin-bottom: 4px;
+}
+
+.hh-claim-correction {
+  font-size: 11px;
+  color: #c62828;
+  background: #fff5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.hh-claim-source {
+  font-size: 10px;
+  color: #8a7e70;
+  margin-top: 4px;
+}
+
+/* ── Footer ── */
+.hh-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid #e8e0d4;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #a89e91;
+}
+
+.hh-footer a {
+  color: #3d3832;
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.hh-footer a:hover {
+  opacity: 0.7;
+}
