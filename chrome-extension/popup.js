@@ -100,7 +100,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no code fences, no extra tex
         'Authorization': `Bearer ${EXT_GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Analyze this text:\n\n${text}` }
