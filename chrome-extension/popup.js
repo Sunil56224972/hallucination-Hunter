@@ -3,8 +3,7 @@
    Handles analysis, UI updates, and auto-capture
    ========================================== */
 
-const API_BASE = 'https://hallucination-hunter.vercel.app';
-const API_ENDPOINT = `${API_BASE}/api/groq`;
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
 const $ = (sel) => document.querySelector(sel);
 const textInput = $('#hh-text-input');
@@ -94,20 +93,20 @@ Respond ONLY with a valid JSON array. Each object must have:
 IMPORTANT: Return ONLY the JSON array, no markdown, no code fences, no extra text.`;
 
   try {
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(GROQ_ENDPOINT, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${EXT_GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Analyze this text:\n\n${text}` }
         ],
         temperature: 0.1,
-        max_tokens: 4096,
-        response_format: { type: 'json_object' }
+        max_tokens: 4096
       })
     });
 

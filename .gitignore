@@ -14,3 +14,4 @@ desktop.ini
 .env
 .env.local
 config.js
+chrome-extension/config.js
