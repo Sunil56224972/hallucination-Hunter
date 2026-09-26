@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hallucination Hunter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="hh-header">
+    <div class="hh-logo">
+      <svg width="24" height="24" viewBox="0 0 100 100" fill="none">
+        <circle cx="50" cy="50" r="45" fill="#3d3832"/>
+        <circle cx="50" cy="50" r="22" fill="none" stroke="#f7f4f0" stroke-width="4"/>
+        <circle cx="50" cy="50" r="8" fill="#f7f4f0"/>
+        <line x1="67" y1="67" x2="90" y2="90" stroke="#f7f4f0" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <span class="hh-title">Hallucination Hunter</span>
+    </div>
+    <div class="hh-badge">v1.0</div>
+  </header>
+
+  <!-- Input Area -->
+  <div class="hh-input-area">
+    <textarea id="hh-text-input" placeholder="Paste AI-generated text here to fact-check...&#10;&#10;Or select text on any webpage — it auto-fills here!" rows="5"></textarea>
+    <div class="hh-input-actions">
+      <button id="hh-clear-btn" class="hh-btn-secondary" title="Clear">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        Clear
+      </button>
+      <button id="hh-analyze-btn" class="hh-btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4"/></svg>
+        Analyze
+      </button>
+    </div>
+  </div>
+
+  <!-- Auto-detect indicator -->
+  <div id="hh-auto-detect" class="hh-auto-detect" style="display:none;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+    <span>Text auto-captured from selection</span>
+  </div>
+
+  <!-- Loading State -->
+  <div id="hh-loading" class="hh-loading" style="display:none;">
+    <div class="hh-spinner"></div>
+    <span>Analyzing claims with LLaMA 3...</span>
+  </div>
+
+  <!-- Error State -->
+  <div id="hh-error" class="hh-error" style="display:none;">
+    <span id="hh-error-text"></span>
+  </div>
+
+  <!-- Results Area -->
+  <div id="hh-results" class="hh-results" style="display:none;">
+    <!-- Trust Score -->
+    <div class="hh-trust-bar">
+      <div class="hh-trust-label">Trust Score</div>
+      <div class="hh-trust-track">
+        <div id="hh-trust-fill" class="hh-trust-fill" style="width:0%"></div>
+      </div>
+      <div id="hh-trust-value" class="hh-trust-value">0%</div>
+    </div>
+
+    <!-- Summary Badges -->
+    <div class="hh-summary">
+      <div class="hh-summary-badge hh-verified">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+        <span id="hh-count-verified">0</span> Verified
+      </div>
+      <div class="hh-summary-badge hh-unverifiable">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <span id="hh-count-unverifiable">0</span> Unverifiable
+      </div>
+      <div class="hh-summary-badge hh-incorrect">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+        <span id="hh-count-incorrect">0</span> Incorrect
+      </div>
+    </div>
+
+    <!-- Claims List -->
+    <div id="hh-claims-list" class="hh-claims-list"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="hh-footer">
+    <a href="https://hallucination-hunter.vercel.app" target="_blank">Open Full App ↗</a>
+    <span>Powered by Groq + LLaMA 3</span>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

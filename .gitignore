@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Environment & Secrets
+.env
+.env.local
+config.js
+chrome-extension/config.js
+
+# Build artifacts
+*.log
+*.pdf
+*.gif
+*.svg
+*.pptx
+*.docx
+package.json
+package-lock.json
+
+# Dev files (not for repo)
+happy.png
+logo_full.png
+logo_render.html
+technical_doc.html
+presentation.html
+extension_doc.html
+project_brief.html
+hackathon-ppt.html
+hallucination-hunter-pitch.html
+make_pdf.js
+generate_pdf.js
+make_presentation_pdf.js
+FEATURES.md
+ROUND2_FEATURES.txt
+ppt design refrence/
+
+# Android / APK
+android/
+capacitor.config.ts
