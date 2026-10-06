@@ -1425,22 +1425,64 @@ mark.claim-hl:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 1
   .page-title { font-size: 28px; }
   .page-subtitle { font-size: 15px; }
 
-  .ledger { grid-template-columns: repeat(2, 1fr); }
+  .ledger { grid-template-columns: repeat(2, 1fr); margin-bottom: 22px; }
+  .ledger-item { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 14px 10px 0; }
+  .ledger-item + .ledger-item { padding-left: 14px; }
   .ledger-item:nth-child(3) { padding-left: 0; border-left: 0; }
   .ledger-item:nth-child(n+3) { border-top: 1px solid var(--rule); }
-  .ledger dd { font-size: 20px; }
+  .ledger dt { font-size: 12.5px; line-height: 1.3; }
+  .ledger dd { margin: 0; font-size: 19px; white-space: nowrap; }
+  .hero .page-title { font-size: clamp(27px, 8.2vw, 34px); max-width: none; }
+  .hero .page-subtitle { margin-top: 10px; font-size: 15px; line-height: 1.55; }
+  .eyebrow { font-size: 11px; margin-bottom: 10px; }
+  .tabs-bar { margin-bottom: 20px; }
+  .section-label h2 { font-size: 20px; }
+  .content-section { margin-top: 32px; }
 
-  #llm-input { min-height: 160px; font-size: 16px; }
-  .input-bar { flex-direction: column; align-items: stretch; }
-  .input-actions { justify-content: space-between; }
-  .input-actions .btn-solid { flex: 1 0 100%; margin: 6px 0 0; height: 44px; }
+  /* masthead tools: same quiet round style for search and theme */
+  .search-box { border-color: transparent; background: none; border-radius: 50%; }
+  .search-box:hover, .search-box:active { border-color: var(--rule); }
+
+  .about-card .lede { font-size: 18px; line-height: 1.5; }
+  .about-card h3 { margin-top: 28px; }
+  .about-card li { padding: 4px 0; }
+  .about-card code { white-space: nowrap; font-size: 0.82em; padding: 1px 4px; }
+  .step h3 { font-size: 18px; }
+  .step p { font-size: 14.5px; }
+
+  /* composer: tools move up into the label row so text gets the full width */
+  .input-label { display: flex; align-items: center; min-height: 46px; padding: 0 104px 0 16px; }
+  .input-tools { top: -46px; right: 6px; height: 46px; align-items: center; }
+  #llm-input {
+    min-height: 168px;
+    max-height: 52vh;
+    padding: 2px 16px 14px;
+    font-size: 16px;
+    line-height: 1.6;
+    resize: none;
+    field-sizing: content;
+  }
+  .input-bar {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas: "count count batch" "clear sample go";
+    align-items: center;
+    gap: 8px 4px;
+    padding: 10px 12px 12px;
+  }
+  .input-actions { display: contents; }
+  .char-indicator { grid-area: count; padding-left: 4px; }
+  .batch-toggle { grid-area: batch; justify-self: end; height: 32px; padding: 0 4px; }
+  #btn-clear { grid-area: clear; }
+  #btn-example { grid-area: sample; }
+  .input-actions .btn-solid { grid-area: go; margin: 0 0 0 4px; height: 44px; padding: 0 14px; white-space: nowrap; }
 
   .annotated-card { padding: 16px; font-size: 16px; }
   .claims-grid { grid-template-columns: 1fr; }
   .filter-tabs { display: flex; width: 100%; }
   .ftab { flex: 1; padding: 7px 4px; }
 
-  .step { grid-template-columns: 44px 1fr; }
+  .step { grid-template-columns: 40px 1fr; column-gap: 8px; padding: 18px 0; }
   .step::before { font-size: 24px; }
 
   .history-row { grid-template-columns: 1fr 32px; gap: 8px 12px; }
@@ -1517,7 +1559,9 @@ mark.claim-hl:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 1
 
   .results-actions { display: grid; grid-template-columns: repeat(2, 1fr); width: 100%; }
   .results-actions .action-btn { width: 100%; }
-  .summary-row { gap: 10px 18px; }
+  .summary-row { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 10px 20px; }
+  .pill-num { font-size: 20px; }
+  .pill-label { font-size: 13px; }
   .score-note { max-width: none; }
 
   .segmented { display: flex; width: 100%; }
@@ -1566,6 +1610,10 @@ mark.claim-hl:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 1
   .page-title { font-size: 25px; }
   .tabs-bar { gap: 16px; }
   .ftab { font-size: 12px; gap: 4px; }
+  .input-bar { gap: 8px 0; padding: 10px 8px 12px; }
+  #btn-clear, #btn-example { padding: 0 8px; }
+  .ledger dt { font-size: 12px; }
+  .ledger dd { font-size: 17px; }
 }
 
 /* phones on their side: the bottom bar eats too much height */
