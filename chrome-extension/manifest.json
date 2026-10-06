@@ -1,20 +1,34 @@
 {
   "manifest_version": 3,
   "name": "Hallucination Hunter",
-  "description": "Check AI answers claim by claim. Copy text on any page or paste it in, and see what is verified, unverifiable or wrong.",
-  "version": "1.0.0",
+  "description": "Check AI answers claim by claim. Select text on any page or paste it in, and see what is verified, unverifiable or wrong.",
+  "version": "1.1.0",
+  "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://hallucination-hunter-five.vercel.app/*"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Hallucination Hunter",
+    "default_title": "Hallucination Hunter (Alt+Shift+H)",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+H",
+        "mac": "Alt+Shift+H"
+      },
+      "description": "Open Hallucination Hunter"
     }
   },
   "icons": {
@@ -25,15 +39,9 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "css": [
-        "content-overlay.css"
-      ],
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "css": ["content-overlay.css"],
       "run_at": "document_idle"
     }
   ],

@@ -54,12 +54,19 @@ Analysis completes in under 2 seconds using Groq's LPU inference hardware.
 - **Filter tabs** — view All / Verified / Unverifiable / Wrong claims
 - **Annotated text** — original text highlighted inline with color-coded claim markers
 - **Example loader** — pre-loaded samples for quick demonstration
+- **Light and dark themes** — follows the system setting, or pick one in Settings
+- **Keyboard first** — `Ctrl+Enter` to check, `/` to focus the text box, `Ctrl+K` to search, `?` for the full list
+- **Cancel and retry** — stop a running check with `Esc`; failed checks offer a one-click retry
+- **Draft autosave** — unfinished text survives a reload
+- **Deep links** — `#/history`, `#/settings`, `#/about` work with Back/Forward
 
 ### Export and Sharing
 
 - **PDF report** — downloadable fact-check report
 - **Copy results** — one-click copy of annotated analysis
 - **Share via URL** — generate a shareable link to any analysis result
+- **Markdown export** — download the report as a `.md` file
+- **History export** — download every saved check as JSON
 
 ### Data Persistence
 
@@ -67,11 +74,13 @@ Analysis completes in under 2 seconds using Groq's LPU inference hardware.
 - **User isolation** — anonymous UUID-based data separation
 - **Dashboard** — aggregate statistics: total analyses, accuracy rate, category breakdown
 - **History browser** — search, filter, and revisit past analyses
+- **Undo delete** — removed checks can be restored for a few seconds
 
 ### Platform Coverage
 
 - **Web application** — responsive, works on desktop and mobile browsers
-- **Chrome extension** — Manifest V3; auto-captures copied text from any website
+- **Installable app (PWA)** — service worker keeps the app shell available offline
+- **Chrome extension** — Manifest V3; right-click any selection to check it, no API key needed
 - **Mobile layout** — touch-friendly navigation with bottom tab bar
 
 ---
@@ -143,14 +152,11 @@ User input → Claim extraction → Per-claim verification → Source search
 git clone https://github.com/Sunil56224972/hallucination-Hunter.git
 cd hallucination-Hunter
 
-# Add your API key
-echo "window.GROQ_API_KEY = 'your-key-here';" > config.js
-
 # Run
 npx live-server --port=3000
 ```
 
-Open `http://localhost:3000`, paste any AI-generated text, click **Analyze**.
+Open `http://localhost:3000`, paste any AI-generated text, click **Check claims**. Local runs use the hosted proxy, so no key is needed. To call Groq directly while developing, set `window.GROQ_API_KEY` in the browser console before checking.
 
 **Vercel deployment** — add `GROQ_API_KEY` as an environment variable in the Vercel dashboard.
 
@@ -161,16 +167,18 @@ Open `http://localhost:3000`, paste any AI-generated text, click **Analyze**.
 The browser extension allows fact-checking on any website without navigating away from the page.
 
 **Capabilities:**
-- Copy text on any page — the extension auto-captures it
-- Toast notification confirms capture
-- Click the toolbar icon to open the popup and analyze
-- Uses the same verification pipeline as the web app
+- Select text, right-click, **Check with Hallucination Hunter**
+- Or copy text and press `Alt+Shift+H`; the popup pre-fills it
+- Filter claims, copy a plain-text report, or open the result in the full app
+- The last result is kept when the popup closes
+- Calls the hosted proxy, so the extension ships no API key
 
 **Install (developer mode):**
 1. Navigate to `chrome://extensions/`
 2. Enable **Developer mode**
 3. Click **Load unpacked** and select the `chrome-extension/` directory
 4. Pin the extension in the toolbar
+5. After pulling updates, press the reload icon on the extension card
 
 Works on Chrome, Edge, Brave, Opera, and other Chromium-based browsers.
 
@@ -198,8 +206,9 @@ npx cap sync android
 ```
 hallucination-Hunter/
 ├── index.html                  Main application
-├── app.js                      Core engine (1,650 lines)
-├── style.css                   Design system
+├── app.js                      Core engine
+├── style.css                   Design system (light and dark)
+├── sw.js                       Offline support
 ├── vercel.json                 Deployment configuration
 ├── api/
 │   ├── groq.js                 AI proxy with rate limiting
@@ -218,12 +227,12 @@ hallucination-Hunter/
 
 | Concern | Implementation |
 |---------|---------------|
-| API key exposure | Keys in `config.js`, excluded via `.gitignore` |
+| API key exposure | Key lives only in the Vercel environment; web app, Android app and extension all go through `/api/groq` |
 | Abuse prevention | Rate limiting: 10 requests/min per IP |
 | Input validation | 20,000 character limit, model whitelist |
 | Cross-origin access | CORS enforcement in serverless proxy |
 | Transport security | HSTS, X-Frame-Options, CSP headers |
-| Extension permissions | Minimal: `activeTab` and `storage` only |
+| Extension permissions | `activeTab`, `storage`, `contextMenus`, and host access to the app's own proxy only |
 
 ---
 

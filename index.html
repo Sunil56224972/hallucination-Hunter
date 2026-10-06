@@ -6,6 +6,22 @@
   <title>Hallucination Hunter &middot; check AI answers claim by claim</title>
   <meta name="description" content="Paste an AI answer and see which claims hold up. Each factual claim is checked and marked verified, unverifiable or wrong, with a source you can open.">
   <meta name="theme-color" content="#f3efe6">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="Hallucination Hunter">
+  <meta property="og:description" content="Paste an AI answer and see which claims hold up, with a source for every verdict.">
+  <meta property="og:image" content="https://hallucination-hunter-five.vercel.app/assets/icon-512.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <script>
+    // Set the theme before first paint so there is no flash.
+    (function () {
+      try {
+        var m = localStorage.getItem('hh_theme') || 'system';
+        var dark = m === 'dark' || (m === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,10 +29,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
+  <div class="offline-bar" id="offline-bar" role="status">You are offline. Past checks may not load and new checks will not run until you reconnect.</div>
 
   <header class="masthead">
     <div class="masthead-inner">
@@ -37,6 +54,7 @@
         <a href="#" class="sidebar-link" data-view="history">History</a>
         <a href="#" class="sidebar-link" data-view="settings">Settings</a>
         <a href="#" class="sidebar-link" data-view="info">About</a>
+        <span class="nav-ink" aria-hidden="true"></span>
       </nav>
 
       <div class="mast-tools">
@@ -44,6 +62,10 @@
           <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.6 12.6 17 17"/></svg>
           <span class="search-placeholder-text" id="search-typing">Search</span>
           <kbd class="search-kbd">Ctrl K</kbd>
+        </button>
+        <button type="button" class="icon-btn theme-toggle" id="theme-toggle" aria-label="Switch light or dark theme" title="Light / dark">
+          <svg class="i-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 12.3A6.5 6.5 0 0 1 7.7 4.5a6.5 6.5 0 1 0 7.8 7.8z"/></svg>
+          <svg class="i-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.2"/><path d="M10 2.5v1.6M10 15.9v1.6M2.5 10h1.6M15.9 10h1.6M4.7 4.7l1.1 1.1M14.2 14.2l1.1 1.1M4.7 15.3l1.1-1.1M14.2 5.8l1.1-1.1"/></svg>
         </button>
         <a class="mast-gh" href="https://github.com/Sunil56224972/hallucination-Hunter" target="_blank" rel="noopener">GitHub</a>
       </div>
@@ -62,35 +84,41 @@
 
       <dl class="ledger" id="dashboard-stats">
         <div class="ledger-item"><dt>Checks run</dt><dd id="dash-total">0</dd></div>
-        <div class="ledger-item"><dt>Average trust</dt><dd id="dash-avg-score">0<span class="stat-unit">%</span></dd></div>
+        <div class="ledger-item"><dt>Average trust</dt><dd id="dash-avg-score"><span class="stat-num">0</span><span class="stat-unit">%</span></dd></div>
         <div class="ledger-item"><dt>Claims checked</dt><dd id="dash-claims">0</dd></div>
-        <div class="ledger-item"><dt>Held up</dt><dd id="dash-accuracy">0<span class="stat-unit">%</span></dd></div>
+        <div class="ledger-item"><dt>Held up</dt><dd id="dash-accuracy"><span class="stat-num">0</span><span class="stat-unit">%</span></dd></div>
       </dl>
 
-      <div class="tabs-bar" id="analyzer-tabs">
-        <button type="button" class="tab active" data-subtab="verify">Check text</button>
-        <button type="button" class="tab" data-subtab="how">How it works</button>
-        <button type="button" class="tab" data-subtab="sources">Sources</button>
+      <div class="tabs-bar" id="analyzer-tabs" role="tablist">
+        <button type="button" class="tab active" role="tab" aria-selected="true" data-subtab="verify">Check text</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-subtab="how">How it works</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-subtab="sources">Sources</button>
+        <span class="nav-ink" aria-hidden="true"></span>
       </div>
 
       <div class="subtab-content active" id="subtab-verify">
         <div class="input-card">
           <label class="input-label" for="llm-input">Text to check</label>
           <div class="textarea-wrap">
-            <textarea id="llm-input" placeholder="Paste the answer here. A paragraph or two works best." spellcheck="false"></textarea>
-            <button type="button" class="mic-btn" id="btn-mic" title="Dictate" aria-label="Dictate text">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0M10 15.5V18"/></svg>
-            </button>
+            <textarea id="llm-input" placeholder="Paste the answer here. A paragraph or two works best." spellcheck="false" maxlength="40000"></textarea>
+            <div class="input-tools">
+              <button type="button" class="icon-btn" id="btn-paste" title="Paste from clipboard" aria-label="Paste from clipboard">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M7 4H5.5A1.5 1.5 0 0 0 4 5.5v10A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 14.5 4H13"/><rect x="7" y="2.5" width="6" height="3" rx="1"/></svg>
+              </button>
+              <button type="button" class="icon-btn mic-btn" id="btn-mic" title="Dictate" aria-label="Dictate text" aria-pressed="false">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0M10 15.5V18"/></svg>
+              </button>
+            </div>
           </div>
           <div class="input-bar">
-            <span class="char-indicator"><span id="char-count">0</span> characters</span>
+            <span class="char-indicator"><span id="char-count">0</span> / 20,000 <kbd class="hint-kbd">Ctrl Enter</kbd></span>
             <div class="input-actions">
               <label class="batch-toggle" title="Put --- on its own line between texts to check several at once">
                 <input type="checkbox" id="batch-mode"> Batch
               </label>
               <button type="button" class="btn-text" id="btn-clear">Clear</button>
               <button type="button" class="btn-text" id="btn-example">Try a sample</button>
-              <button type="button" class="btn-solid" id="btn-analyze">Check claims</button>
+              <button type="button" class="btn-solid" id="btn-analyze"><span class="btn-label">Check claims</span><span class="btn-spinner" aria-hidden="true"></span></button>
             </div>
           </div>
         </div>
@@ -116,6 +144,7 @@
           <div class="progress-strip">
             <div class="progress-track"><div class="progress-thumb" id="progress-thumb"></div></div>
             <span class="progress-pct" id="progress-pct">0%</span>
+            <button type="button" class="btn-text btn-cancel hidden" id="btn-cancel">Cancel <kbd class="hint-kbd">Esc</kbd></button>
           </div>
         </div>
 
@@ -131,6 +160,7 @@
               </div>
               <div class="score-copy">
                 <span class="score-title">Trust score</span>
+                <span class="score-verdict" id="score-verdict"></span>
                 <span class="score-note">Share of the <span id="s-total">0</span> claims that checked out.</span>
               </div>
             </div>
@@ -141,7 +171,8 @@
             </ul>
             <div class="results-actions">
               <button type="button" class="action-btn" id="btn-copy">Copy report</button>
-              <button type="button" class="action-btn" id="btn-share">Copy link</button>
+              <button type="button" class="action-btn" id="btn-share">Share link</button>
+              <button type="button" class="action-btn" id="btn-markdown">Markdown</button>
               <button type="button" class="action-btn" id="btn-export">Print / PDF</button>
             </div>
           </div>
@@ -149,7 +180,7 @@
           <section class="content-section">
             <div class="section-label">
               <h2>Your text, marked up</h2>
-              <p>Hover a marked passage to see what we found.</p>
+              <p id="annotated-note">Hover or tab to a marked passage to see what we found. Click to jump to its card.</p>
             </div>
             <div class="legend" aria-hidden="true">
               <span class="legend-item"><span class="claim-hl verified">verified</span></span>
@@ -163,10 +194,10 @@
             <div class="section-label section-label-row">
               <h2>Claim by claim</h2>
               <div class="filter-tabs">
-                <button type="button" class="ftab active" data-filter="all">All</button>
-                <button type="button" class="ftab" data-filter="verified">Verified</button>
-                <button type="button" class="ftab" data-filter="unverifiable">Unverifiable</button>
-                <button type="button" class="ftab" data-filter="false">Wrong</button>
+                <button type="button" class="ftab active" aria-pressed="true" data-filter="all">All</button>
+                <button type="button" class="ftab" aria-pressed="false" data-filter="verified">Verified</button>
+                <button type="button" class="ftab" aria-pressed="false" data-filter="unverifiable">Unverifiable</button>
+                <button type="button" class="ftab" aria-pressed="false" data-filter="false">Wrong</button>
               </div>
             </div>
             <div class="claims-grid" id="claims-grid"></div>
@@ -324,10 +355,16 @@
       <header class="page-header page-header-row">
         <div>
           <h1 class="page-title">History</h1>
-          <p class="page-subtitle">Checks you have run, saved under an anonymous ID kept in this browser.</p>
+          <p class="page-subtitle">Checks you have run, saved under an anonymous ID kept in this browser. <span class="history-count" id="history-count"></span></p>
         </div>
-        <button type="button" class="btn-text btn-danger" id="btn-clear-history">Clear all</button>
+        <div class="header-actions">
+          <button type="button" class="btn-text" id="btn-export-history" disabled>Export JSON</button>
+          <button type="button" class="btn-text btn-danger" id="btn-clear-history" disabled>Clear all</button>
+        </div>
       </header>
+      <div class="history-tools" id="history-tools">
+        <input type="search" class="filter-input" id="history-filter" placeholder="Filter by text" aria-label="Filter history">
+      </div>
       <div class="history-list" id="history-list">
         <div class="empty-state" id="history-empty">
           <h3>No checks yet</h3>
@@ -347,11 +384,12 @@
           <h1 class="page-title">Settings</h1>
           <p class="page-subtitle">How strict the checker should be.</p>
         </div>
-        <button type="button" class="btn-solid" id="btn-save-settings">Save</button>
+        <button type="button" class="btn-solid" id="btn-save-settings" disabled>Saved</button>
       </header>
-      <div class="tabs-bar" id="settings-tabs">
-        <button type="button" class="tab active" data-settab="general">General</button>
-        <button type="button" class="tab" data-settab="database">Storage</button>
+      <div class="tabs-bar" id="settings-tabs" role="tablist">
+        <button type="button" class="tab active" role="tab" aria-selected="true" data-settab="general">General</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-settab="database">Storage</button>
+        <span class="nav-ink" aria-hidden="true"></span>
       </div>
 
       <div class="settab-content active" id="settab-general">
@@ -372,6 +410,20 @@
                 <span class="range-val" id="s-conf-val">75%</span>
               </div>
             </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left"><span class="setting-name">Appearance</span><span class="setting-hint">Saved on this device. Applies straight away.</span></div>
+            <div class="setting-right">
+              <div class="segmented" role="group" aria-label="Theme">
+                <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
+                <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
+                <button type="button" data-theme-choice="system" aria-pressed="false">System</button>
+              </div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left"><span class="setting-name">Keyboard shortcuts</span><span class="setting-hint">Press <kbd class="hint-kbd">?</kbd> anywhere to see them.</span></div>
+            <div class="setting-right"><button type="button" class="action-btn" id="btn-shortcuts">Show shortcuts</button></div>
           </div>
         </div>
       </div>
@@ -420,6 +472,8 @@
           <li><strong>Storage:</strong> Supabase (Postgres) for checks, claims and settings.</li>
           <li><strong>Also on:</strong> a Chrome extension and an Android app built from this same code.</li>
         </ul>
+        <h3>Privacy</h3>
+        <p>Text you check is sent to the model provider to be analysed and stored with your checks under a random ID that lives in this browser. There is no account and no tracking. Share links keep the result in the link itself, so nothing extra is uploaded when you share.</p>
       </div>
     </section>
 
@@ -432,19 +486,45 @@
 
   <!-- Search -->
   <div class="search-overlay hidden" id="search-overlay">
-    <div class="search-modal" role="dialog" aria-label="Search">
+    <div class="search-modal" role="dialog" aria-modal="true" aria-label="Search">
       <div class="search-input-row">
         <svg class="search-modal-icon" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.6 12.6 17 17"/></svg>
         <input type="text" class="search-input" id="search-input" placeholder="Search past checks, claims and sources" autocomplete="off">
-        <button type="button" class="search-close-btn" id="search-close"><kbd>Esc</kbd></button>
+        <button type="button" class="search-close-btn" id="search-close" aria-label="Close search"><kbd>Esc</kbd></button>
       </div>
-      <div class="search-results" id="search-results">
+      <div class="search-results" id="search-results" role="listbox">
         <div class="search-empty-state"><p>Start typing to search everything you have checked.</p></div>
       </div>
+      <div class="search-foot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
     </div>
   </div>
 
-  <div class="tip hidden" id="tip">
+  <dialog class="dialog" id="confirm-dialog">
+    <form method="dialog">
+      <h2 class="dialog-title"></h2>
+      <p class="dialog-body"></p>
+      <div class="dialog-actions">
+        <button type="submit" class="btn-text dialog-cancel" value="cancel">Cancel</button>
+        <button type="submit" class="btn-solid dialog-confirm" value="confirm">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="shortcuts-dialog">
+    <form method="dialog">
+      <h2 class="dialog-title">Keyboard shortcuts</h2>
+      <dl class="shortcut-list">
+        <div><dt><kbd>Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Check the text</dd></div>
+        <div><dt><kbd>/</kbd></dt><dd>Jump to the text box</dd></div>
+        <div><dt><kbd>Ctrl</kbd> <kbd>K</kbd></dt><dd>Search past checks</dd></div>
+        <div><dt><kbd>Esc</kbd></dt><dd>Cancel a running check, close a dialog</dd></div>
+        <div><dt><kbd>?</kbd></dt><dd>Show this list</dd></div>
+      </dl>
+      <div class="dialog-actions"><button type="submit" class="btn-solid" value="cancel">Done</button></div>
+    </form>
+  </dialog>
+
+  <div class="tip hidden" id="tip" role="tooltip">
     <div class="tip-head"><span class="tip-status"></span><span class="tip-conf"></span></div>
     <div class="tip-body"></div>
     <div class="tip-source"></div>
@@ -454,30 +534,29 @@
 
   <nav class="mobile-nav" id="mobile-nav" aria-label="Main">
     <div class="mobile-nav-inner">
-      <button type="button" class="mobile-nav-link active" data-view="analyzer" onclick="switchView('analyzer'); updateMobileNav(this)">
+      <button type="button" class="mobile-nav-link active" data-view="analyzer">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 5h13M3.5 10h4.5M11 10h5.5M3.5 15h8"/></svg>
         <span class="mobile-nav-label">Check</span>
       </button>
-      <button type="button" class="mobile-nav-link" data-view="history" onclick="switchView('history'); updateMobileNav(this)">
+      <button type="button" class="mobile-nav-link" data-view="history">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.2 10a6.8 6.8 0 1 0 2-4.8M3 3.5v2.8h2.8"/><path d="M10 6.5V10l2.5 1.6"/></svg>
         <span class="mobile-nav-label">History</span>
       </button>
-      <button type="button" class="mobile-nav-link" data-view="sources" onclick="switchView('sources'); updateMobileNav(this)">
+      <button type="button" class="mobile-nav-link" data-view="sources">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M10 5.5C8.4 4.3 6 3.8 3.5 4v11c2.5-.2 4.9.3 6.5 1.5 1.6-1.2 4-1.7 6.5-1.5V4c-2.5-.2-4.9.3-6.5 1.5zM10 5.5v11"/></svg>
         <span class="mobile-nav-label">Sources</span>
       </button>
-      <button type="button" class="mobile-nav-link" data-view="settings" onclick="switchView('settings'); updateMobileNav(this)">
+      <button type="button" class="mobile-nav-link" data-view="settings">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 6h6M13.5 6h3M3.5 14h2M9.5 14h7"/><circle cx="11.5" cy="6" r="2"/><circle cx="7.5" cy="14" r="2"/></svg>
         <span class="mobile-nav-label">Settings</span>
       </button>
-      <button type="button" class="mobile-nav-link" data-view="info" onclick="switchView('info'); updateMobileNav(this)">
+      <button type="button" class="mobile-nav-link" data-view="info">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 9v4.5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor"/></svg>
         <span class="mobile-nav-label">About</span>
       </button>
     </div>
   </nav>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>

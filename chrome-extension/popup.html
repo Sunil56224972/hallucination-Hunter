@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>Hallucination Hunter</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -10,7 +11,7 @@
   <header class="hh-header">
     <div class="hh-logo">
       <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
-        <rect width="64" height="64" rx="15" fill="#1c1a17"/>
+        <rect class="hh-logo-bg" width="64" height="64" rx="15" fill="#1c1a17"/>
         <rect x="14" y="18" width="36" height="5" rx="2.5" fill="#f3efe6"/>
         <rect x="14" y="29.5" width="12" height="5" rx="2.5" fill="#f3efe6"/>
         <rect x="29" y="29.5" width="21" height="5" rx="2.5" fill="#d4502a"/>
@@ -18,56 +19,64 @@
       </svg>
       <span class="hh-title">Hallucination Hunter</span>
     </div>
-    <div class="hh-badge">1.0</div>
+    <span class="hh-badge" id="hh-version">v1.1</span>
   </header>
 
-  <div class="hh-input-area">
-    <label class="hh-label" for="hh-text-input">Text to check</label>
-    <textarea id="hh-text-input" placeholder="Paste an AI answer here, or copy text on any page and reopen this popup." rows="5"></textarea>
-    <div class="hh-input-actions">
-      <span class="hh-hint">Ctrl + Enter</span>
-      <button id="hh-clear-btn" class="hh-btn-secondary" type="button">Clear</button>
-      <button id="hh-analyze-btn" class="hh-btn-primary" type="button">Check claims</button>
-    </div>
-  </div>
-
-  <div id="hh-auto-detect" class="hh-auto-detect" style="display:none;">
-    <span>Filled in from the text you copied.</span>
-  </div>
-
-  <div id="hh-loading" class="hh-loading" style="display:none;">
-    <div class="hh-spinner"></div>
-    <span>Checking claims...</span>
-  </div>
-
-  <div id="hh-error" class="hh-error" style="display:none;">
-    <span id="hh-error-text"></span>
-  </div>
-
-  <div id="hh-results" class="hh-results" style="display:none;">
-    <div class="hh-trust-bar">
-      <div class="hh-trust-label">Trust score</div>
-      <div class="hh-trust-track">
-        <div id="hh-trust-fill" class="hh-trust-fill" style="width:0%"></div>
+  <main>
+    <div class="hh-input-area">
+      <div class="hh-label-row">
+        <label class="hh-label" for="hh-text-input">Text to check</label>
+        <span class="hh-count" id="hh-count">0 / 20,000</span>
       </div>
-      <div id="hh-trust-value" class="hh-trust-value">0%</div>
+      <textarea id="hh-text-input" placeholder="Paste an AI answer here. Or select text on any page, right-click and choose Check with Hallucination Hunter." rows="5" maxlength="20000"></textarea>
+      <div id="hh-auto-detect" class="hh-auto-detect" hidden></div>
+      <div class="hh-input-actions">
+        <span class="hh-hint"><kbd>Ctrl</kbd> <kbd>Enter</kbd></span>
+        <button id="hh-clear-btn" class="hh-btn-secondary" type="button">Clear</button>
+        <button id="hh-analyze-btn" class="hh-btn-primary" type="button"><span class="hh-btn-label">Check claims</span><span class="hh-btn-spin" aria-hidden="true"></span></button>
+      </div>
     </div>
 
-    <div class="hh-summary">
-      <div class="hh-summary-badge hh-verified"><span id="hh-count-verified">0</span> verified</div>
-      <div class="hh-summary-badge hh-unverifiable"><span id="hh-count-unverifiable">0</span> unverifiable</div>
-      <div class="hh-summary-badge hh-incorrect"><span id="hh-count-incorrect">0</span> wrong</div>
+    <div id="hh-loading" class="hh-loading" hidden>
+      <div class="hh-progress"><span></span></div>
+      <div class="hh-loading-row">
+        <span id="hh-loading-text">Reading the text...</span>
+        <button id="hh-cancel-btn" class="hh-link-btn" type="button">Cancel</button>
+      </div>
     </div>
 
-    <div id="hh-claims-list" class="hh-claims-list"></div>
-  </div>
+    <div id="hh-error" class="hh-error" role="alert" hidden>
+      <span id="hh-error-text"></span>
+      <button id="hh-retry-btn" class="hh-link-btn" type="button" hidden>Try again</button>
+    </div>
+
+    <section id="hh-results" class="hh-results" hidden aria-live="polite">
+      <div class="hh-trust-bar">
+        <div class="hh-trust-label">Trust score</div>
+        <div class="hh-trust-track"><div id="hh-trust-fill" class="hh-trust-fill"></div></div>
+        <div id="hh-trust-value" class="hh-trust-value">0%</div>
+      </div>
+
+      <div class="hh-summary">
+        <button type="button" class="hh-summary-badge hh-verified" data-filter="verified"><span id="hh-count-verified">0</span> verified</button>
+        <button type="button" class="hh-summary-badge hh-unverifiable" data-filter="unverifiable"><span id="hh-count-unverifiable">0</span> unverifiable</button>
+        <button type="button" class="hh-summary-badge hh-incorrect" data-filter="false"><span id="hh-count-incorrect">0</span> wrong</button>
+      </div>
+
+      <div id="hh-claims-list" class="hh-claims-list"></div>
+
+      <div class="hh-result-actions">
+        <button id="hh-copy-btn" class="hh-btn-outline" type="button">Copy report</button>
+        <button id="hh-open-btn" class="hh-btn-outline" type="button">Open in full app</button>
+      </div>
+    </section>
+  </main>
 
   <footer class="hh-footer">
-    <a href="https://hallucination-hunter-five.vercel.app" target="_blank" rel="noopener">Open the full app</a>
-    <span>Groq &middot; gpt-oss-120b</span>
+    <a href="https://hallucination-hunter-five.vercel.app" target="_blank" rel="noopener">hallucination-hunter-five.vercel.app</a>
+    <span id="hh-shortcut-hint">Alt+Shift+H</span>
   </footer>
 
-  <script src="config.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

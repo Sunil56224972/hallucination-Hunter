@@ -1,45 +1,33 @@
-/* ==========================================
-   Hallucination Hunter - Content Script
-   Detects text selection/copy on any webpage
-   and sends to the extension popup
-   ========================================== */
+/* Hallucination Hunter - content script.
+   When you copy a passage, keep it so the popup can pre-fill it. Nothing else is read. */
 
 (function () {
   'use strict';
 
-  // Listen for copy events on any page
+  function alive() {
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch (e) { return false; }
+  }
+
   document.addEventListener('copy', () => {
     setTimeout(() => {
-      const selectedText = window.getSelection().toString().trim();
-      if (selectedText && selectedText.length > 10) {
-        // Store the selected text so popup can read it
+      if (!alive()) return;
+      const active = document.activeElement;
+      if (active && active.type === 'password') return;
+      const text = String(window.getSelection() || '').trim();
+      if (text.length < 40) return;
+      try {
         chrome.storage.local.set({
-          capturedText: selectedText,
+          capturedText: text.slice(0, 20000),
           capturedAt: Date.now(),
-          capturedFrom: window.location.hostname
+          capturedFrom: location.hostname,
+          autoRun: false
         });
-
-        // Show a subtle toast notification
-        showToast(selectedText);
-      }
-    }, 100);
+        showToast();
+      } catch (e) { /* extension was reloaded; ignore */ }
+    }, 50);
   });
 
-  // Also listen for text selection (mouseup) to detect intent
-  document.addEventListener('mouseup', () => {
-    const selectedText = window.getSelection().toString().trim();
-    if (selectedText && selectedText.length > 20) {
-      chrome.storage.local.set({
-        selectedText: selectedText,
-        selectedAt: Date.now(),
-        selectedFrom: window.location.hostname
-      });
-    }
-  });
-
-  // Show a small toast when text is captured
-  function showToast(text) {
-    // Remove any existing toast
+  function showToast() {
     const old = document.getElementById('hh-capture-toast');
     if (old) old.remove();
 
@@ -55,19 +43,16 @@
           <rect x="29" y="29.5" width="21" height="5" rx="2.5" fill="#d4502a"/>
           <rect x="14" y="41" width="24" height="5" rx="2.5" fill="#1c1a17"/>
         </svg>
-        <span>Copied. Open <strong>Hallucination Hunter</strong> from the toolbar to check it.</span>
+        <span>Copied. Press <strong>Alt+Shift+H</strong> to check it.</span>
         <button class="hh-toast-close" type="button" aria-label="Dismiss">&times;</button>
-      </div>
-    `;
+      </div>`;
     toast.querySelector('.hh-toast-close').addEventListener('click', () => toast.remove());
-    document.body.appendChild(toast);
+    document.documentElement.appendChild(toast);
 
-    // Auto-remove after 3.5 seconds
     setTimeout(() => {
-      if (toast.parentElement) {
-        toast.classList.add('hh-leaving');
-        setTimeout(() => toast.remove(), 200);
-      }
-    }, 3000);
+      if (!toast.isConnected) return;
+      toast.classList.add('hh-leaving');
+      setTimeout(() => toast.remove(), 220);
+    }, 3200);
   }
 })();
