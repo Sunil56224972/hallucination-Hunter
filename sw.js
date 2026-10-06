@@ -3,7 +3,7 @@
 // Static files and fonts: serve from cache, refresh in the background.
 // API calls and storage requests are never cached.
 
-const VERSION = 'hh-v4';
+const VERSION = 'hh-v5';
 const SHELL = [
   './',
   'index.html',
@@ -11,7 +11,8 @@ const SHELL = [
   'app.js',
   'manifest.webmanifest',
   'assets/favicon-32.png',
-  'assets/icon-192.png'
+  'assets/icon-192.png',
+  'assets/brand/logo-lockup.webp'
 ];
 const CACHEABLE_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net'];
 
@@ -59,6 +60,8 @@ async function staleWhileRevalidate(event) {
 self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET') return;
+  // Video is fetched in byte ranges; let the browser and HTTP cache handle it.
+  if (request.headers.has('range') || request.destination === 'video') return;
   const url = new URL(request.url);
 
   if (url.origin === self.location.origin) {

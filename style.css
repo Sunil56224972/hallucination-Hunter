@@ -1348,6 +1348,48 @@ mark.claim-hl:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 1
   }
 }
 
+/* ---------- boot splash ---------- */
+
+.splash { display: none; }
+.hh-splash body { overflow: hidden; }
+.hh-splash .splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  cursor: default;
+  transition: opacity 0.5s var(--ease), visibility 0s linear 0.5s;
+}
+.splash-art {
+  grid-area: 1 / 1;
+  width: min(540px, 82vw);
+  height: auto;
+  /* the clip is black on white: multiply lets the paper colour through */
+  mix-blend-mode: multiply;
+  transition: transform 0.6s var(--ease-out), opacity 0.25s ease;
+}
+[data-theme="dark"] .splash-art { filter: invert(1) sepia(0.15); mix-blend-mode: screen; }
+.splash-still { opacity: 0; }
+.splash.is-still .splash-still { opacity: 1; }
+.splash.is-still .splash-video { opacity: 0; }
+.hh-splash-out .splash { opacity: 0; visibility: hidden; }
+.hh-splash-out .splash-art { transform: scale(0.95); }
+
+/* the page waits underneath, then settles in as the logo leaves */
+.hh-splash .masthead,
+.hh-splash .main-wrapper,
+.hh-splash .mobile-nav { opacity: 0; }
+.hh-splash .main-wrapper { transform: translateY(10px); }
+.hh-splash.hh-splash-out .masthead,
+.hh-splash.hh-splash-out .main-wrapper,
+.hh-splash.hh-splash-out .mobile-nav {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.5s ease 0.12s, transform 0.65s var(--ease-out) 0.12s;
+}
+
 /* ---------- smaller screens ---------- */
 
 /* tablets and narrow laptops: keep the masthead on one line */

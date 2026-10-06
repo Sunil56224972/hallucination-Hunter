@@ -20,6 +20,12 @@
         var dark = m === 'dark' || (m === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
       } catch (e) {}
+      // Logo intro: once per session, never when another app hands text over.
+      try {
+        if (!sessionStorage.getItem('hh_splash') && !/[?&](text|nosplash)\b/.test(location.search)) {
+          document.documentElement.classList.add('hh-splash');
+        }
+      } catch (e) {}
     })();
   </script>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -32,6 +38,55 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" defer></script>
 </head>
 <body>
+  <div class="splash" id="splash" aria-hidden="true">
+    <video class="splash-art splash-video" id="splash-video" muted playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback width="928" height="384"></video>
+    <img class="splash-art splash-still" src="assets/brand/logo-lockup.webp" alt="" width="928" height="384" decoding="async">
+  </div>
+  <script>
+    // Runs before the rest of the page is parsed so the intro starts at once.
+    // The clip is 1.7s; a short hold, then a 0.5s fade hands over to the page.
+    (function () {
+      var root = document.documentElement;
+      var box = document.getElementById('splash');
+      if (!root.classList.contains('hh-splash')) { box.parentNode.removeChild(box); return; }
+      var video = document.getElementById('splash-video');
+      var done = false;
+
+      function finish() {
+        if (done) return;
+        done = true;
+        try { sessionStorage.setItem('hh_splash', '1'); } catch (e) {}
+        root.classList.add('hh-splash-out');
+        setTimeout(function () {
+          root.classList.remove('hh-splash', 'hh-splash-out');
+          if (box.parentNode) box.parentNode.removeChild(box);
+        }, 800);
+      }
+      function showStill(hold) {
+        if (done) return;
+        box.classList.add('is-still');
+        setTimeout(finish, hold);
+      }
+
+      var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var saveData = navigator.connection && navigator.connection.saveData;
+      if (reduce || saveData) { showStill(650); return; }
+
+      // Slow network or blocked autoplay: fall back to the still logo instead of waiting.
+      var startTimer = setTimeout(function () { video.pause(); showStill(450); }, 1100);
+      video.addEventListener('playing', function () { clearTimeout(startTimer); });
+      video.addEventListener('ended', function () { setTimeout(finish, 260); });
+      video.addEventListener('error', function () { clearTimeout(startTimer); showStill(450); });
+      setTimeout(finish, 3600);
+
+      box.addEventListener('click', finish);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') finish(); });
+
+      video.src = 'assets/brand/logo-intro.mp4';
+      var p = video.play();
+      if (p && p.catch) p.catch(function () { clearTimeout(startTimer); showStill(600); });
+    })();
+  </script>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="offline-bar" id="offline-bar" role="status">You are offline. Past checks may not load and new checks will not run until you reconnect.</div>
 
