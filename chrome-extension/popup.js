@@ -1,5 +1,5 @@
 /* ==========================================
-   Hallucination Hunter — Popup Logic
+   Hallucination Hunter - Popup Logic
    Handles analysis, UI updates, and auto-capture
    ========================================== */
 
@@ -14,7 +14,7 @@ const errorEl = $('#hh-error');
 const resultsEl = $('#hh-results');
 const autoDetectEl = $('#hh-auto-detect');
 
-// ── On popup open, check for captured/selected text ──
+// - On popup open, check for captured/selected text -
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     const data = await chrome.storage.local.get([
@@ -40,21 +40,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// ── Analyze Button ──
+// - Analyze Button -
 analyzeBtn.addEventListener('click', () => {
   const text = textInput.value.trim();
   if (!text) {
-    showError('Please enter some text to analyze.');
+    showError('Paste some text first.');
     return;
   }
   if (text.length < 15) {
-    showError('Text is too short. Enter at least one full sentence.');
+    showError('That is a bit short. Give it at least one full sentence.');
     return;
   }
   analyzeClaims(text);
 });
 
-// ── Clear Button ──
+// - Clear Button -
 clearBtn.addEventListener('click', () => {
   textInput.value = '';
   resultsEl.style.display = 'none';
@@ -63,23 +63,23 @@ clearBtn.addEventListener('click', () => {
   textInput.focus();
 });
 
-// ── Enter key shortcut ──
+// - Enter key shortcut -
 textInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.ctrlKey) {
     analyzeBtn.click();
   }
 });
 
-// ── Main Analysis Function ──
+// - Main Analysis Function -
 async function analyzeClaims(text) {
   showLoading(true);
   hideError();
   resultsEl.style.display = 'none';
 
   const systemPrompt = `You are a fact-checking AI. Extract ALL factual claims from the given text. For EACH claim, verify it against your knowledge and classify it as:
-- "verified" — the claim is factually correct
-- "unverifiable" — cannot be confirmed or denied
-- "false" — the claim is factually incorrect
+- "verified" - the claim is factually correct
+- "unverifiable" - cannot be confirmed or denied
+- "false" - the claim is factually incorrect
 
 Respond ONLY with a valid JSON array. Each object must have:
 - "claim": the extracted factual claim (string)
@@ -118,7 +118,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no code fences, no extra tex
     const data = await response.json();
     let content = data.choices[0].message.content.trim();
 
-    // Clean response — remove markdown code fences if present
+    // Clean response - remove markdown code fences if present
     content = content.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '');
 
     let claims;
@@ -140,13 +140,13 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no code fences, no extra tex
 
     displayResults(claims);
   } catch (err) {
-    showError(err.message || 'Analysis failed. Please try again.');
+    showError(err.message || 'The check failed. Try again in a moment.');
   } finally {
     showLoading(false);
   }
 }
 
-// ── Display Results ──
+// - Display Results -
 function displayResults(claims) {
   const verified = claims.filter(c => c.status === 'verified').length;
   const unverifiable = claims.filter(c => c.status === 'unverifiable').length;
@@ -160,15 +160,16 @@ function displayResults(claims) {
   const trustFill = $('#hh-trust-fill');
   const trustValue = $('#hh-trust-value');
   trustFill.style.width = trustScore + '%';
+  trustFill.style.background = trustScore >= 75 ? '#3f7650' : trustScore >= 50 ? '#a8741b' : '#b8402c';
   trustValue.textContent = trustScore + '%';
 
   // Update color based on score
   if (trustScore >= 75) {
-    trustValue.style.color = '#2e7d32';
+    trustValue.style.color = '#3f7650';
   } else if (trustScore >= 50) {
-    trustValue.style.color = '#e65100';
+    trustValue.style.color = '#a8741b';
   } else {
-    trustValue.style.color = '#c62828';
+    trustValue.style.color = '#b8402c';
   }
 
   // Update counts
@@ -182,17 +183,17 @@ function displayResults(claims) {
 
   claims.forEach((claim, i) => {
     const status = claim.status === 'false' ? 'incorrect' : claim.status;
-    const statusLabel = status === 'incorrect' ? 'Incorrect' : status === 'verified' ? 'Verified' : 'Unverifiable';
+    const statusLabel = status === 'incorrect' ? 'Wrong' : status === 'verified' ? 'Verified' : 'Unverifiable';
 
     const badgeIcons = {
-      verified: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>',
-      unverifiable: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 8v4M12 16h.01"/></svg>',
-      incorrect: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>'
+      verified: '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>',
+      unverifiable: '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7.3 7.6a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1.1.9-1.1 1.6v.3M10 15.4h.01"/></svg>',
+      incorrect: '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>'
     };
 
     const card = document.createElement('div');
     card.className = 'hh-claim-card';
-    card.style.animationDelay = `${i * 0.08}s`;
+    card.style.animationDelay = `${Math.min(i, 10) * 0.04}s`;
     card.innerHTML = `
       <div class="hh-claim-top">
         <div class="hh-claim-badge ${status}">${badgeIcons[status]}</div>
@@ -200,8 +201,8 @@ function displayResults(claims) {
         <span class="hh-claim-conf">${claim.confidence || 0}%</span>
       </div>
       <div class="hh-claim-text">${escapeHtml(claim.claim)}</div>
-      ${claim.correction ? `<div class="hh-claim-correction">✦ Correction: ${escapeHtml(claim.correction)}</div>` : ''}
-      ${claim.source ? `<div class="hh-claim-source">Source: ${escapeHtml(claim.source)} · ${escapeHtml(claim.category || '')}</div>` : ''}
+      ${claim.correction ? `<div class="hh-claim-correction"><strong>Actually:</strong> ${escapeHtml(claim.correction)}</div>` : ''}
+      ${claim.source ? `<div class="hh-claim-source">Source: ${escapeHtml(claim.source)}${claim.category ? ', ' + escapeHtml(claim.category) : ''}</div>` : ''}
     `;
     claimsList.appendChild(card);
   });
@@ -209,7 +210,7 @@ function displayResults(claims) {
   resultsEl.style.display = 'block';
 }
 
-// ── Helpers ──
+// - Helpers -
 function showLoading(show) {
   loadingEl.style.display = show ? 'flex' : 'none';
   analyzeBtn.disabled = show;

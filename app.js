@@ -1,14 +1,12 @@
-// ═══════════════════════════════════════════
-// HALLUCINATION HUNTER — Full App with Supabase
-// ═══════════════════════════════════════════
+// HALLUCINATION HUNTER - Full App with Supabase
 
 const SUPABASE_URL = 'https://jdvafpwancenabxbnxbh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdmFmcHdhbmNlbmFieGJueGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMDMwNjgsImV4cCI6MjEwMTY3OTA2OH0.xVZOUOiO_uDzRLHbZ9jjCjV8bZ8cUpZaQINzIgn6QlA';
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ─── Anonymous User Isolation ────────────
-// Each browser gets a unique ID — users only see their own data
+// Anonymous User Isolation
+// Each browser gets a unique ID - users only see their own data
 function getUserId() {
   let id = localStorage.getItem('hh_user_id');
   if (!id) {
@@ -19,12 +17,12 @@ function getUserId() {
 }
 const userId = getUserId();
 
-// ─── Helpers ─────────────────────────────
+// Helpers
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
-// ─── DOM refs ────────────────────────────
+// DOM refs
 const input = $('#llm-input');
 const charCount = $('#char-count');
 const btnClear = $('#btn-clear');
@@ -39,26 +37,31 @@ const toastContainer = $('#toast-container');
 
 let currentClaims = [];
 
-// ═══════════════════════════════════════════
+// Inline SVG verdict marks (styled by .mark in style.css)
+const MARKS = {
+  verified: '<svg class="mark mark-verified" viewBox="0 0 20 20" role="img" aria-label="Verified"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>',
+  unverifiable: '<svg class="mark mark-unverifiable" viewBox="0 0 20 20" role="img" aria-label="Unverifiable"><path d="M7.3 7.6a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1.1.9-1.1 1.6v.5"/><circle class="dot" cx="10" cy="15.4" r="1.1"/></svg>',
+  false: '<svg class="mark mark-false" viewBox="0 0 20 20" role="img" aria-label="Wrong"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>'
+};
+const VERDICT_LABELS = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Wrong' };
+const LINK_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-.9.9"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l.9-.9"/></svg>';
+
 // TOAST NOTIFICATIONS
-// ═══════════════════════════════════════════
 
 function showToast(message, type = 'info') {
   const icons = {
-    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a7f64" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>',
-    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7fb08a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>',
+    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e0846f" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a59c8d" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/></svg>'
   };
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `<span class="toast-icon">${icons[type]}</span>${message}`;
   toastContainer.appendChild(toast);
-  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3500);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.25s'; setTimeout(() => toast.remove(), 250); }, 3200);
 }
 
-// ═══════════════════════════════════════════
-// NAVIGATION — Sidebar views
-// ═══════════════════════════════════════════
+// NAVIGATION - Sidebar views
 
 $$('.sidebar-link').forEach(link => {
   link.addEventListener('click', e => {
@@ -118,9 +121,7 @@ function updateMobileNav(btn) {
   btn.classList.add('active');
 }
 
-// ═══════════════════════════════════════════
 // ANALYZER SUB-TABS (Verify / How it works / Sources)
-// ═══════════════════════════════════════════
 
 $('#analyzer-tabs').addEventListener('click', e => {
   const btn = e.target.closest('[data-subtab]');
@@ -133,9 +134,7 @@ $('#analyzer-tabs').addEventListener('click', e => {
   if (btn.dataset.subtab === 'sources') loadSources();
 });
 
-// ═══════════════════════════════════════════
 // SETTINGS SUB-TABS (General / Database)
-// ═══════════════════════════════════════════
 
 $('#settings-tabs').addEventListener('click', e => {
   const btn = e.target.closest('[data-settab]');
@@ -148,9 +147,7 @@ $('#settings-tabs').addEventListener('click', e => {
   if (btn.dataset.settab === 'database') checkDbStatus();
 });
 
-// ═══════════════════════════════════════════
 // INPUT HANDLERS
-// ═══════════════════════════════════════════
 
 input.addEventListener('input', () => {
   charCount.textContent = input.value.length;
@@ -174,13 +171,13 @@ btnExample.addEventListener('click', () => {
   input.value = EXAMPLES[exampleIdx % EXAMPLES.length];
   charCount.textContent = input.value.length;
   exampleIdx++;
-  showToast('Example loaded — click Analyze', 'info');
+  showToast('Sample loaded. Press Check claims when ready.', 'info');
 });
 
 btnAnalyze.addEventListener('click', () => {
   const text = input.value.trim();
   if (!text) { showToast('Paste some text first', 'error'); return; }
-  if (text.length < 30) { showToast('Text too short — need at least 30 characters', 'error'); return; }
+  if (text.length < 30) { showToast('That is a bit short. Give it at least a sentence or two.', 'error'); return; }
   runAnalysis(text);
 });
 
@@ -203,13 +200,11 @@ document.addEventListener('mousemove', e => {
   }
 });
 
-// ═══════════════════════════════════════════
-// GROQ API — Real LLM Verification Engine
-// ═══════════════════════════════════════════
+// GROQ API - Real LLM Verification Engine
 
 // Smart API routing:
-// - Vercel deployment → calls /api/groq (serverless proxy, key hidden server-side)
-// - Local dev → calls Groq directly using config.js key
+// - Vercel deployment -> calls /api/groq (serverless proxy, key hidden server-side)
+// - Local dev -> calls Groq directly using config.js key
 const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 const GROQ_MODEL = 'openai/gpt-oss-120b'; // updated: llama-3.3-70b-versatile was shut down Aug 16 2026
 
@@ -250,7 +245,7 @@ async function extractClaimsFromLLM(text) {
 
 Rules:
 - Extract ONLY factual claims (not opinions, questions, or subjective statements)
-- Each claim should be atomic — one verifiable fact per claim
+- Each claim should be atomic - one verifiable fact per claim
 - Keep the original wording as close as possible
 - Include numbers, dates, names, and specific details
 
@@ -276,15 +271,15 @@ async function verifyClaimsWithLLM(claims) {
   const result = await callGroq([
     {
       role: 'system',
-      content: `You are a world-class fact-checking engine used by journalists and researchers. Your job is to verify factual claims with ABSOLUTE accuracy. Users depend on you for truthful, real information — never guess, never fabricate.
+      content: `You are a world-class fact-checking engine used by journalists and researchers. Your job is to verify factual claims with ABSOLUTE accuracy. Users depend on you for truthful, real information - never guess, never fabricate.
 
 STRICT RULES:
 1. Only mark a claim as "verified" if you are 100% certain it is factually correct based on well-established, widely-known facts.
-2. Mark as "false" if the claim contains ANY factual error — even partially wrong claims are "false". Always provide the CORRECT real information in your explanation (the actual number, date, name, etc.).
+2. Mark as "false" if the claim contains ANY factual error - even partially wrong claims are "false". Always provide the CORRECT real information in your explanation (the actual number, date, name, etc.).
 3. Mark as "unverifiable" if you are not fully certain, if the claim is subjective, or if it requires very recent data you may not have.
 4. NEVER guess or make up facts. If you don't know the exact answer, say "unverifiable".
 5. In your explanation, always cite the REAL, CORRECT fact. For example: "The human body has 206 bones, not 210" or "The heart beats about 100,000 times per day, not 100,000 per hour."
-6. Confidence must reflect your ACTUAL certainty — don't inflate scores.
+6. Confidence must reflect your ACTUAL certainty - don't inflate scores.
 
 For each claim provide:
 - **status**: "verified" | "false" | "unverifiable"
@@ -321,9 +316,7 @@ Respond in JSON:
   return (result.results || []);
 }
 
-// ═══════════════════════════════════════════
 // REAL SOURCE FINDER - Google Search Links
-// ═══════════════════════════════════════════
 
 async function findRealSources(claims) {
   return claims.map(claim => {
@@ -349,9 +342,7 @@ async function findRealSources(claims) {
   });
 }
 
-// ═══════════════════════════════════════════
 // ANALYSIS PIPELINE (Real)
-// ═══════════════════════════════════════════
 
 async function runAnalysis(text) {
   results.classList.add('hidden');
@@ -378,7 +369,7 @@ async function runAnalysis(text) {
       return;
     }
 
-    // Step 2: Search sources (visual step — Groq does this internally)
+    // Step 2: Search sources (visual step - Groq does this internally)
     await animateStepStart('ps-search');
     await delay(600);
     await animateStepDone('ps-search', 33, 66);
@@ -418,7 +409,7 @@ async function runAnalysis(text) {
     
     currentClaims = withRealSources;
 
-    // ── AUTO-SET threshold from REAL Groq confidence scores ──────────
+    // AUTO-SET threshold from REAL Groq confidence scores
     // Groq returns actual confidence per claim (e.g. 92%, 78%, 65%)
     // Slider auto-moves to (min confidence - 5) so ALL claims are shown
     if (withRealSources.length > 0) {
@@ -433,15 +424,15 @@ async function runAnalysis(text) {
         slider.value = autoVal;
         if (sliderLbl) sliderLbl.textContent = autoVal + '%';
       }
-      showToast(`Threshold auto-set to ${autoVal}%  (avg confidence: ${avgConf}%)`, 'info');
+      showToast(`Threshold moved to ${autoVal}% (average confidence ${avgConf}%)`, 'info');
     }
 
     displayResults(text, withRealSources);
-    updateAccuracyTab(withRealSources);   // ← Populate Current Accuracy tab
+    updateAccuracyTab(withRealSources);   // <- Populate Current Accuracy tab
 
     // Save to Supabase
     await saveAnalysis(text, withRealSources);
-    showToast('Analysis saved to database', 'success');
+    showToast('Saved to history', 'success');
     loadDashboardStats();
     loadSources(); // Refresh sources tab after new analysis
   } catch (err) {
@@ -476,9 +467,7 @@ async function animateStepDone(stepId, pStart, pEnd) {
   });
 }
 
-// ═══════════════════════════════════════════
 // DISPLAY RESULTS
-// ═══════════════════════════════════════════
 
 function displayResults(originalText, claims) {
   const total = claims.length;
@@ -500,6 +489,8 @@ function displayResults(originalText, claims) {
     arc.style.transition = 'stroke-dashoffset 0.8s ease';
     arc.style.strokeDashoffset = offset;
   }, 100);
+  const donut = $('#score-donut');
+  if (donut) donut.dataset.band = trustScore >= 70 ? 'good' : trustScore >= 40 ? 'mid' : 'bad';
 
   buildAnnotated(originalText, claims);
   buildCards(claims);
@@ -507,8 +498,11 @@ function displayResults(originalText, claims) {
   setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 
+const REDUCED_MOTION = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 function animateNum(id, target) {
   const el = $(`#${id}`);
+  if (REDUCED_MOTION) { el.textContent = target; return; }
   const dur = 700;
   const t0 = performance.now();
   function tick(now) {
@@ -539,25 +533,21 @@ function buildAnnotated(originalText, claims) {
 function showTip(e) {
   const el = e.target.closest('.claim-hl');
   if (!el) return;
-  const labels = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Incorrect' };
+  const labels = VERDICT_LABELS;
   const colors = { verified: 'var(--green)', unverifiable: 'var(--amber)', false: 'var(--red)' };
   tip.querySelector('.tip-status').textContent = labels[el.dataset.status];
   tip.querySelector('.tip-status').style.color = colors[el.dataset.status];
   tip.querySelector('.tip-conf').textContent = el.dataset.conf + '% confidence';
   tip.querySelector('.tip-body').textContent = el.dataset.explain;
-  tip.querySelector('.tip-source').textContent = '📎 ' + el.dataset.src;
+  tip.querySelector('.tip-source').textContent = 'Source: ' + el.dataset.src;
   tip.classList.remove('hidden');
 }
 function hideTip() { tip.classList.add('hidden'); }
 
 function buildCards(claims) {
   claimsGrid.innerHTML = '';
-  const icons = {
-    verified: `<img src="verified-icon.png" alt="Verified" class="badge-icon">`,
-    unverifiable: `<img src="unverifiable-icon.png" alt="Unverifiable" class="badge-icon">`,
-    false: `<img src="incorrect-icon.png" alt="Incorrect" class="badge-icon">`
-  };
-  const labels = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Incorrect' };
+  const icons = MARKS;
+  const labels = VERDICT_LABELS;
   const threshold = parseInt($('#s-conf-range')?.value || '75', 10);
 
   claims.forEach((c, i) => {
@@ -565,7 +555,7 @@ function buildCards(claims) {
     card.className = 'claim-card';
     card.dataset.status = c.status;
     card.dataset.confidence = c.confidence;
-    card.style.animationDelay = `${i * 0.05}s`;
+    card.style.animationDelay = `${Math.min(i, 12) * 0.04}s`;
 
     // Real-time threshold: dim card if below threshold
     const belowThreshold = c.confidence < threshold;
@@ -577,10 +567,10 @@ function buildCards(claims) {
       : `<span>${escapeHtml(c.source)}</span>`;
 
     // Confidence bar color
-    const confColor = c.confidence >= 80 ? '#22c55e' : c.confidence >= 60 ? '#f59e0b' : '#ef4444';
+    const confColor = c.confidence >= 80 ? 'var(--green)' : c.confidence >= 60 ? 'var(--amber)' : 'var(--red)';
 
     card.innerHTML = `
-      ${belowThreshold ? `<div class="threshold-badge">⚠️ Below ${threshold}% threshold</div>` : ''}
+      ${belowThreshold ? `<div class="threshold-badge">Below ${threshold}% threshold</div>` : ''}
       <div class="claim-card-top">
         <div class="claim-icon">${icons[c.status]}</div>
         <div class="claim-card-info">
@@ -598,7 +588,7 @@ function buildCards(claims) {
       </div>
       <p class="claim-desc">${escapeHtml(c.text)}</p>
       <div class="claim-source-direct">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        ${LINK_ICON}
         ${srcLink}
       </div>
       <div class="claim-tags"><span class="claim-tag ${(c.category || 'General').toLowerCase()}">${escapeHtml(c.category || 'General')}</span></div>
@@ -610,7 +600,7 @@ function buildCards(claims) {
     detailDiv.innerHTML = `
       <div class="claim-explain">${escapeHtml(c.explanation)}</div>
       <div class="claim-src">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        ${LINK_ICON}
         ${srcLink}
       </div>
     `;
@@ -623,9 +613,6 @@ function buildCards(claims) {
     });
     claimsGrid.appendChild(card);
 
-    // Stagger icon animation delay
-    const badgeIcon = card.querySelector('.badge-icon');
-    if (badgeIcon) badgeIcon.style.animationDelay = `${i * 0.15}s`;
   });
 }
 
@@ -635,9 +622,7 @@ function filterClaims(filter) {
   });
 }
 
-// ═══════════════════════════════════════════
-// SUPABASE — Save Analysis
-// ═══════════════════════════════════════════
+// SUPABASE - Save Analysis
 
 async function saveAnalysis(text, claims) {
   const vCount = claims.filter(c => c.status === 'verified').length;
@@ -672,9 +657,7 @@ async function saveAnalysis(text, claims) {
   if (cErr) { console.error('Save claims error:', cErr); throw cErr; }
 }
 
-// ═══════════════════════════════════════════
 // HISTORY VIEW
-// ═══════════════════════════════════════════
 
 async function loadHistory() {
   const list = $('#history-list');
@@ -688,8 +671,7 @@ async function loadHistory() {
   list.innerHTML = '';
   if (!data || data.length === 0) {
     list.innerHTML = `<div class="empty-state" id="history-empty">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c4bdb4" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-      <h3>No analyses yet</h3><p>Run your first analysis and it will show up here</p>
+      <h3>No checks yet</h3><p>Run one from the Check tab and it will be listed here.</p>
     </div>`;
     return;
   }
@@ -708,12 +690,12 @@ async function loadHistory() {
         <div class="history-meta"><span>${date}</span><span>${a.total_claims} claims</span></div>
       </div>
       <div class="history-stats">
-        <span class="history-stat v">${a.verified_count} ✓</span>
-        <span class="history-stat u">${a.unverifiable_count} ?</span>
-        <span class="history-stat f">${a.false_count} ✗</span>
+        <span class="history-stat v" title="Verified">${a.verified_count}</span>
+        <span class="history-stat u" title="Unverifiable">${a.unverifiable_count}</span>
+        <span class="history-stat f" title="Wrong">${a.false_count}</span>
       </div>
-      <button class="history-delete" data-id="${a.id}" title="Delete">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      <button class="history-delete" data-id="${a.id}" title="Delete" aria-label="Delete this check">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h12M8 6V4.5h4V6M5.5 6l.7 10h7.6l.7-10"/></svg>
       </button>
     `;
 
@@ -724,10 +706,10 @@ async function loadHistory() {
     // Delete button
     row.querySelector('.history-delete').addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm('Delete this analysis?')) return;
+      if (!confirm('Delete this check?')) return;
       const { error } = await db.from('analyses').delete().eq('id', a.id).eq('user_id', userId);
       if (error) { showToast('Delete failed', 'error'); return; }
-      showToast('Analysis deleted', 'success');
+      showToast('Check deleted', 'success');
       loadHistory();
     });
 
@@ -751,12 +733,8 @@ async function viewHistoryDetail(analysisId) {
   const scoreClass = analysis.trust_score >= 70 ? 'good' : analysis.trust_score >= 40 ? 'mid' : 'bad';
   const date = new Date(analysis.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  const icons = {
-    verified: `<img src="verified-icon.png" alt="Verified" class="badge-icon">`,
-    unverifiable: `<img src="unverifiable-icon.png" alt="Unverifiable" class="badge-icon">`,
-    false: `<img src="incorrect-icon.png" alt="Incorrect" class="badge-icon">`
-  };
-  const labels = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Incorrect' };
+  const icons = MARKS;
+  const labels = VERDICT_LABELS;
 
   let claimsHTML = '';
   claims.forEach(c => {
@@ -780,7 +758,7 @@ async function viewHistoryDetail(analysisId) {
         <div class="claim-detail hidden">
           <div class="claim-explain">${escapeHtml(c.explanation || '')}</div>
           <div class="claim-src">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            ${LINK_ICON}
             ${srcLink}
           </div>
         </div></div>
@@ -789,19 +767,19 @@ async function viewHistoryDetail(analysisId) {
   });
 
   content.innerHTML = `
-    <div class="section-label" style="margin-bottom: 16px;">
+    <div class="section-label">
       <div>
-        <h2>Analysis from ${date}</h2>
-        <p>Trust score: <strong style="color: var(--${scoreClass === 'good' ? 'green' : scoreClass === 'mid' ? 'amber' : 'red'})">${analysis.trust_score}%</strong> · ${analysis.total_claims} claims extracted</p>
+        <h2>Check from ${date}</h2>
+        <p>Trust score: <strong style="color: var(--${scoreClass === 'good' ? 'green' : scoreClass === 'mid' ? 'amber' : 'red'})">${analysis.trust_score}%</strong> \u00b7 ${analysis.total_claims} claims</p>
       </div>
-      <div class="summary-row" style="margin-top: 8px; justify-content: flex-start; gap: 8px;">
+      <div class="summary-row">
         <span class="history-stat v">${analysis.verified_count} verified</span>
         <span class="history-stat u">${analysis.unverifiable_count} unverifiable</span>
-        <span class="history-stat f">${analysis.false_count} incorrect</span>
+        <span class="history-stat f">${analysis.false_count} wrong</span>
       </div>
     </div>
-    <div class="annotated-card" style="margin-bottom: 24px;">${escapeHtml(analysis.input_text)}</div>
-    <h3 style="font-size: 0.95rem; font-weight: 600; color: var(--text-900); margin-bottom: 14px;">Claims</h3>
+    <div class="annotated-card">${escapeHtml(analysis.input_text)}</div>
+    <h3>Claim by claim</h3>
     <div class="claims-grid">${claimsHTML}</div>
   `;
 }
@@ -812,16 +790,14 @@ $('#btn-back-history').addEventListener('click', () => {
 });
 
 $('#btn-clear-history').addEventListener('click', async () => {
-  if (!confirm('Delete ALL analysis history? This cannot be undone.')) return;
+  if (!confirm('Delete every saved check? This cannot be undone.')) return;
   const { error } = await db.from('analyses').delete().eq('user_id', userId);
   if (error) { showToast('Failed to clear history', 'error'); return; }
   showToast('History cleared', 'success');
   loadHistory();
 });
 
-// ═══════════════════════════════════════════
 // SOURCES VIEW
-// ═══════════════════════════════════════════
 
 async function loadSources() {
   const list = $('#sources-list');
@@ -831,8 +807,7 @@ async function loadSources() {
 
   if (!data || data.length === 0) {
     list.innerHTML = `<div class="empty-state small-empty">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#c4bdb4" stroke-width="1.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      <h3>No sources yet</h3><p>Run an analysis to start building your source database</p>
+      <h3>Nothing yet</h3><p>Sources show up here after your first check.</p>
     </div>`;
     return;
   }
@@ -858,21 +833,19 @@ async function loadSources() {
     row.className = 'source-row';
     row.innerHTML = `
       <div class="source-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        ${LINK_ICON}
       </div>
       <div class="source-info">
         <div class="source-name">${nameHTML}</div>
-        <div class="source-meta">${vCount} verified · ${fCount} contradicted · ${s.count} total references</div>
+        <div class="source-meta">${vCount} verified, ${fCount} contradicted</div>
       </div>
-      <div class="source-count">${s.count}×</div>
+      <div class="source-count">${s.count} ${s.count === 1 ? 'use' : 'uses'}</div>
     `;
     list.appendChild(row);
   });
 }
 
-// ═══════════════════════════════════════════
 // SETTINGS
-// ═══════════════════════════════════════════
 
 async function loadSettings() {
   const { data, error } = await db.from('settings').select('*').eq('user_id', userId);
@@ -907,7 +880,7 @@ $('#s-conf-range').addEventListener('input', e => {
           badge.className = 'threshold-badge';
           card.insertBefore(badge, card.firstChild);
         }
-        badge.textContent = `⚠️ Below ${threshold}% threshold`;
+        badge.textContent = `Below ${threshold}% threshold`;
       } else {
         if (badge) badge.remove();
       }
@@ -973,14 +946,12 @@ async function checkDbStatus() {
   } catch (err) {
     statusEl.textContent = 'Disconnected';
     statusEl.className = 'db-status disconnected';
-    analysesCountEl.textContent = '—';
-    claimsCountEl.textContent = '—';
+    analysesCountEl.textContent = '-';
+    claimsCountEl.textContent = '-';
   }
 }
 
-// ═══════════════════════════════════════════
 // FEATURE: Dashboard Stats
-// ═══════════════════════════════════════════
 
 async function loadDashboardStats() {
   try {
@@ -1010,6 +981,7 @@ async function loadDashboardStats() {
 }
 
 function animateNumWithSuffix(el, target, suffix) {
+  if (REDUCED_MOTION) { el.innerHTML = target + `<span class="stat-unit">${suffix}</span>`; return; }
   const dur = 700;
   const t0 = performance.now();
   function tick(now) {
@@ -1021,9 +993,7 @@ function animateNumWithSuffix(el, target, suffix) {
   requestAnimationFrame(tick);
 }
 
-// ═══════════════════════════════════════════
 // FEATURE: Voice Input
-// ═══════════════════════════════════════════
 
 (() => {
   const micBtn = $('#btn-mic');
@@ -1048,7 +1018,7 @@ function animateNumWithSuffix(el, target, suffix) {
 
     recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false; // Disable interim — prevents duplicate/repeated words
+    recognition.interimResults = false; // Disable interim - prevents duplicate/repeated words
     recognition.lang = 'en-US';
 
     const startText = input.value; // Text that was in box before recording
@@ -1057,11 +1027,11 @@ function animateNumWithSuffix(el, target, suffix) {
     recognition.onstart = () => {
       isRecording = true;
       micBtn.classList.add('recording');
-      showToast('Listening... speak now', 'info');
+      showToast('Listening. Click the mic again to stop.', 'info');
     };
 
     recognition.onresult = (e) => {
-      // Only process final results — accumulate new speech
+      // Only process final results - accumulate new speech
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
           newSpeech += (newSpeech ? ' ' : '') + e.results[i][0].transcript.trim();
@@ -1075,7 +1045,7 @@ function animateNumWithSuffix(el, target, suffix) {
     recognition.onend = () => {
       isRecording = false;
       micBtn.classList.remove('recording');
-      showToast('Voice input stopped', 'success');
+      showToast('Stopped listening', 'info');
     };
 
     recognition.onerror = (e) => {
@@ -1088,50 +1058,44 @@ function animateNumWithSuffix(el, target, suffix) {
   });
 })();
 
-// ═══════════════════════════════════════════
 // FEATURE: Export PDF
-// ═══════════════════════════════════════════
 
 $('#btn-export')?.addEventListener('click', () => {
   if (!currentClaims.length) { showToast('No results to export', 'error'); return; }
   window.print();
-  showToast('Print dialog opened', 'info');
+  
 });
 
-// ═══════════════════════════════════════════
 // FEATURE: Copy Annotated Text
-// ═══════════════════════════════════════════
 
 $('#btn-copy')?.addEventListener('click', async () => {
   if (!currentClaims.length) { showToast('No results to copy', 'error'); return; }
 
-  const labels = { verified: '✅ VERIFIED', unverifiable: '❓ UNVERIFIABLE', false: '❌ INCORRECT' };
-  let text = '═══ HALLUCINATION HUNTER REPORT ═══\n\n';
+  const labels = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Wrong' };
+  let text = 'Hallucination Hunter report\n' + new Date().toLocaleString() + '\n\n';
 
   const total = currentClaims.length;
   const vCount = currentClaims.filter(c => c.status === 'verified').length;
   const trustScore = Math.round((vCount / total) * 100);
-  text += `Trust Score: ${trustScore}% | ${total} claims analyzed\n`;
-  text += `Verified: ${vCount} | Unverifiable: ${currentClaims.filter(c => c.status === 'unverifiable').length} | Incorrect: ${currentClaims.filter(c => c.status === 'false').length}\n\n`;
+  text += `Trust score: ${trustScore}% across ${total} claims\n`;
+  text += `Verified: ${vCount}, unverifiable: ${currentClaims.filter(c => c.status === 'unverifiable').length}, wrong: ${currentClaims.filter(c => c.status === 'false').length}\n\n`;
 
   currentClaims.forEach((c, i) => {
-    text += `${i + 1}. [${labels[c.status]}] (${c.confidence}%)\n`;
+    text += `${i + 1}. ${labels[c.status]} (${c.confidence}% confidence)\n`;
     text += `   "${c.text}"\n`;
-    text += `   → ${c.explanation}\n`;
+    text += `   ${c.explanation}\n`;
     text += `   Source: ${c.source}\n\n`;
   });
 
   try {
     await navigator.clipboard.writeText(text);
-    showToast('Results copied to clipboard', 'success');
+    showToast('Report copied', 'success');
   } catch {
     showToast('Failed to copy', 'error');
   }
 });
 
-// ═══════════════════════════════════════════
 // FEATURE: Share Analysis
-// ═══════════════════════════════════════════
 
 $('#btn-share')?.addEventListener('click', async () => {
   if (!currentClaims.length) { showToast('No results to share', 'error'); return; }
@@ -1147,12 +1111,12 @@ $('#btn-share')?.addEventListener('click', async () => {
     const url = window.location.origin + window.location.pathname + '#share=' + encoded;
 
     if (url.length > 8000) {
-      showToast('Analysis too large to share via URL — use Copy instead', 'error');
+      showToast('Too long for a link. Use Copy report instead.', 'error');
       return;
     }
 
     await navigator.clipboard.writeText(url);
-    showToast('Share link copied to clipboard!', 'success');
+    showToast('Link copied', 'success');
   } catch {
     showToast('Failed to generate share link', 'error');
   }
@@ -1181,9 +1145,7 @@ function loadSharedAnalysis() {
   }
 }
 
-// ═══════════════════════════════════════════
 // FEATURE: Batch Analysis
-// ═══════════════════════════════════════════
 
 // Override analyze button to support batch mode
 const originalAnalyzeHandler = btnAnalyze.onclick;
@@ -1256,17 +1218,13 @@ btnAnalyze.addEventListener('click', async (e) => {
   loadDashboardStats();
 }, true); // capture phase to intercept before normal handler
 
-// ═══════════════════════════════════════════
 // UTILITIES
-// ═══════════════════════════════════════════
 
 function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-// ═══════════════════════════════════════════
 // INIT
-// ═══════════════════════════════════════════
 
 (async () => {
   try {
@@ -1283,62 +1241,16 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
   loadSharedAnalysis();
 })();
 
-// ═══════════════════════════════════════════
 // GLOBAL SEARCH
-// ═══════════════════════════════════════════
 (() => {
   const searchToggle = $('#global-search-toggle');
   const searchOverlay = $('#search-overlay');
   const searchInput = $('#search-input');
   const searchResults = $('#search-results');
   const searchClose = $('#search-close');
-  const typingEl = $('#search-typing');
 
   if (!searchToggle || !searchOverlay) return;
 
-  // ─── Typing Animation ─────────────────
-  const phrases = [
-    'Search analyses…',
-    'Find verified claims…',
-    'Look up sources…',
-    'Search fact-checks…',
-    'Find hallucinations…'
-  ];
-  let phraseIdx = 0;
-  let charIdx = 0;
-  let isDeleting = false;
-  let typingPaused = false;
-
-  function typeLoop() {
-    if (typingPaused) return;
-    const current = phrases[phraseIdx];
-
-    if (!isDeleting) {
-      // Typing forward
-      typingEl.textContent = current.slice(0, charIdx + 1);
-      charIdx++;
-      if (charIdx >= current.length) {
-        // Pause at end of phrase
-        setTimeout(() => { isDeleting = true; typeLoop(); }, 2000);
-        return;
-      }
-      setTimeout(typeLoop, 70 + Math.random() * 40);
-    } else {
-      // Deleting
-      typingEl.textContent = current.slice(0, charIdx);
-      charIdx--;
-      if (charIdx <= 0) {
-        isDeleting = false;
-        phraseIdx = (phraseIdx + 1) % phrases.length;
-        setTimeout(typeLoop, 400);
-        return;
-      }
-      setTimeout(typeLoop, 35);
-    }
-  }
-
-  // Start typing after a small delay
-  setTimeout(typeLoop, 800);
 
   // Open search
   function openSearch() {
@@ -1350,10 +1262,7 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
   function closeSearch() {
     searchOverlay.classList.add('hidden');
     searchInput.value = '';
-    searchResults.innerHTML = `<div class="search-empty-state">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c4bdb4" stroke-width="1.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <p>Type to search across your analyses, claims and sources</p>
-    </div>`;
+    searchResults.innerHTML = `<div class="search-empty-state"><p>Start typing to search everything you have checked.</p></div>`;
   }
 
   // Toggle
@@ -1403,13 +1312,13 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
   // Perform search across Supabase
   async function performSearch(query) {
-    searchResults.innerHTML = `<div class="search-empty-state"><p>Searching…</p></div>`;
+    searchResults.innerHTML = `<div class="search-empty-state"><p>Searching...</p></div>`;
 
     const lowerQ = query.toLowerCase();
     let html = '';
 
     try {
-      // 1. Search analyses (history) — correct columns: trust_score, not overall_score
+      // 1. Search analyses (history) - correct columns: trust_score, not overall_score
       const { data: analyses, error: aErr } = await db
         .from('analyses')
         .select('id, input_text, trust_score, created_at')
@@ -1423,7 +1332,7 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
         (a.input_text || '').toLowerCase().includes(lowerQ)
       );
 
-      // 2. Search claims — separate table with analysis_id
+      // 2. Search claims - separate table with analysis_id
       const { data: claims, error: cErr } = await db
         .from('claims')
         .select('id, analysis_id, claim_text, status, confidence, explanation, source_url, source_name, created_at')
@@ -1438,7 +1347,7 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
         (c.explanation || '').toLowerCase().includes(lowerQ)
       );
 
-      // 3. Sources — extracted from claims (source_url / source_name)
+      // 3. Sources - extracted from claims (source_url / source_name)
       const sourceMap = new Map();
       (claims || []).forEach(c => {
         if (c.source_url) {
@@ -1458,7 +1367,7 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
       // Build results HTML
       if (matchedAnalyses.length === 0 && matchedClaims.length === 0 && matchedSources.length === 0) {
         searchResults.innerHTML = `<div class="search-no-results">
-          <p>No results found for "<strong>${query}</strong>"</p>
+          <p>Nothing matches "<strong>${escapeHtml(query)}</strong>".</p>
         </div>`;
         return;
       }
@@ -1468,13 +1377,13 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
         html += `<div class="search-section-label">Analyses (${matchedAnalyses.length})</div>`;
         matchedAnalyses.slice(0, 5).forEach(a => {
           const preview = (a.input_text || '').slice(0, 80);
-          const score = a.trust_score != null ? `${a.trust_score}%` : '—';
+          const score = a.trust_score != null ? `${a.trust_score}%` : '-';
           const date = new Date(a.created_at).toLocaleDateString();
           html += `<div class="search-result-item" data-action="view-analysis" data-id="${a.id}">
-            <div class="search-result-icon history">📊</div>
+            <div class="search-result-icon history">${a.trust_score != null ? a.trust_score : '-'}</div>
             <div class="search-result-info">
-              <div class="search-result-title">${highlight(preview, query)}…</div>
-              <div class="search-result-meta">Score: ${score} · ${date}</div>
+              <div class="search-result-title">${highlight(preview, query)}...</div>
+              <div class="search-result-meta">Trust ${score}, ${date}</div>
             </div>
           </div>`;
         });
@@ -1488,10 +1397,10 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
           const status = c.status || 'unknown';
           const date = c.created_at ? new Date(c.created_at).toLocaleDateString() : '';
           html += `<div class="search-result-item" data-action="view-analysis" data-id="${c.analysis_id}">
-            <div class="search-result-icon claim">💬</div>
+            <div class="search-result-icon claim">${MARKS[status] || ''}</div>
             <div class="search-result-info">
               <div class="search-result-title">${highlight(text, query)}</div>
-              <div class="search-result-meta">${status} · ${date}</div>
+              <div class="search-result-meta">${VERDICT_LABELS[status] || status}, ${date}</div>
             </div>
           </div>`;
         });
@@ -1502,10 +1411,10 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
         html += `<div class="search-section-label">Sources (${matchedSources.length})</div>`;
         matchedSources.slice(0, 5).forEach(s => {
           html += `<div class="search-result-item" data-action="open-source" data-url="${s.url}">
-            <div class="search-result-icon source">🔗</div>
+            <div class="search-result-icon source">${LINK_ICON}</div>
             <div class="search-result-info">
               <div class="search-result-title">${highlight(s.name, query)}</div>
-              <div class="search-result-meta">${highlight(s.url, query)} · Used ${s.count}x</div>
+              <div class="search-result-meta">${highlight(s.url, query)}, cited ${s.count}x</div>
             </div>
           </div>`;
         });
@@ -1541,9 +1450,7 @@ function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
   }
 })();
 
-// ══════════════════════════════════════════════════════════════
-// CURRENT ACCURACY RATE TAB — real data from Groq analysis
-// ══════════════════════════════════════════════════════════════
+// CURRENT ACCURACY RATE TAB - real data from Groq analysis
 function updateAccuracyTab(claims) {
   if (!claims || claims.length === 0) return;
 
@@ -1563,9 +1470,9 @@ function updateAccuracyTab(claims) {
 
   // Update subtitle
   const sub = $('#acc-subtitle');
-  if (sub) sub.textContent = `Last analyzed at ${now} — based on ${total} claim${total !== 1 ? 's' : ''} from Groq LLaMA 3`;
+  if (sub) sub.textContent = `Last analyzed at ${now} - based on ${total} claim${total !== 1 ? 's' : ''}`;
 
-  // ── Animated ring ───────────────────────────────────────────
+  // Animated ring
   const arc = $('#acc-arc');
   if (arc) {
     const circumference = 2 * Math.PI * 34; // 213.6
@@ -1574,7 +1481,7 @@ function updateAccuracyTab(claims) {
     arc.style.stroke = '#3d3832';
   }
 
-  // ── Score number (count-up animation) ───────────────────────
+  // Score number (count-up animation)
   const scoreEl = $('#acc-score-num');
   if (scoreEl) {
     let current = 0;
@@ -1586,12 +1493,12 @@ function updateAccuracyTab(claims) {
     }, 20);
   }
 
-  // ── Meta values ─────────────────────────────────────────────
+  // Meta values
   if ($('#acc-total'))    $('#acc-total').textContent    = total;
   if ($('#acc-avg-conf')) $('#acc-avg-conf').textContent = avgConf + '%';
   if ($('#acc-time'))     $('#acc-time').textContent     = now;
 
-  // ── Verdict breakdown bars ───────────────────────────────────
+  // Verdict breakdown bars
   function setBar(fillId, countId, count) {
     const fill  = $(fillId);
     const countEl = $(countId);
@@ -1602,7 +1509,7 @@ function updateAccuracyTab(claims) {
   setBar('#acc-bar-unverifiable', '#acc-n-unverifiable', unverifiable);
   setBar('#acc-bar-false',        '#acc-n-false',        incorrect);
 
-  // ── Confidence distribution (10-bucket histogram) ────────────
+  // Confidence distribution (10-bucket histogram)
   const grid = $('#acc-conf-grid');
   if (grid) {
     const buckets = Array(10).fill(0);
@@ -1612,7 +1519,7 @@ function updateAccuracyTab(claims) {
     });
     const maxB = Math.max(...buckets, 1);
     grid.innerHTML = buckets.map((count, i) => {
-      const label  = `${i * 10}–${i * 10 + 9}%`;
+      const label  = `${i * 10}-${i * 10 + 9}%`;
       const height = Math.round((count / maxB) * 60);
       const color  = '#6b6560';
       return `<div class="acc-hist-col" title="${label}: ${count} claim${count !== 1 ? 's' : ''}">
@@ -1622,12 +1529,12 @@ function updateAccuracyTab(claims) {
     }).join('');
   }
 
-  // ── Per-claim rows ────────────────────────────────────────────
+  // Per-claim rows
   const list = $('#acc-claim-list');
   if (list) {
     list.innerHTML = claims.map((c, i) => {
       const status    = c.status === 'verified' ? 'verified' : c.status === 'unverifiable' ? 'unverifiable' : 'false';
-      const shortText = (c.text || c.claim_text || '').slice(0, 90) + ((c.text || c.claim_text || '').length > 90 ? '…' : '');
+      const shortText = (c.text || c.claim_text || '').slice(0, 90) + ((c.text || c.claim_text || '').length > 90 ? '...' : '');
       return `<div class="acc-claim-row row-${status}">
         <div class="acc-claim-idx">${i + 1}</div>
         <div class="acc-claim-body">
@@ -1641,7 +1548,7 @@ function updateAccuracyTab(claims) {
     }).join('');
   }
 
-  // ── Flash the tab button ──────────────────────────────────────
+  // Flash the tab button
   const tabBtn = $('#tab-accuracy');
   if (tabBtn) {
     tabBtn.classList.add('tab-pulse');

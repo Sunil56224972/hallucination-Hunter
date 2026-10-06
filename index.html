@@ -2,171 +2,114 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hallucination Hunter — LLM Fact Verification</title>
-  <meta name="description" content="Claim-level fact-verification layer for LLM outputs. Splits AI answers into claims, verifies each against trusted sources.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hallucination Hunter &middot; check AI answers claim by claim</title>
+  <meta name="description" content="Paste an AI answer and see which claims hold up. Each factual claim is checked and marked verified, unverifiable or wrong, with a source you can open.">
+  <meta name="theme-color" content="#f3efe6">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/jpeg" href="logo.jpg">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-top">
-      <div class="sidebar-logo">
-        <img src="logo.jpg" alt="HH" width="22" height="22" style="border-radius:4px;">
-      </div>
-      <nav class="sidebar-nav">
-        <a href="#" class="sidebar-link active" data-view="analyzer" title="Analyzer">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </a>
-        <a href="#" class="sidebar-link" data-view="history" title="History">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
-          </svg>
-        </a>
-        <a href="#" class="sidebar-link" data-view="settings" title="Settings">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-        </a>
-        <a href="#" class="sidebar-link" data-view="info" title="About">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-        </a>
-      </nav>
-    </div>
-    <div class="sidebar-bottom">
-      <a href="https://github.com/Sunil56224972/hallucination-Hunter" target="_blank" class="sidebar-link" title="GitHub Repository">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a class="brand" href="./" aria-label="Hallucination Hunter, home">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="15" fill="#1c1a17"/>
+          <rect x="14" y="18" width="36" height="5" rx="2.5" fill="#f3efe6"/>
+          <rect x="14" y="29.5" width="12" height="5" rx="2.5" fill="#f3efe6"/>
+          <rect x="29" y="29.5" width="21" height="5" rx="2.5" fill="#d4502a"/>
+          <path d="M29 38.2H50" stroke="#d4502a" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="0.1 3.2"/>
+          <rect x="14" y="41" width="24" height="5" rx="2.5" fill="#f3efe6"/>
         </svg>
+        <span class="brand-name">Hallucination Hunter</span>
       </a>
+
+      <nav class="mast-nav" aria-label="Main">
+        <a href="#" class="sidebar-link active" data-view="analyzer">Check</a>
+        <a href="#" class="sidebar-link" data-view="history">History</a>
+        <a href="#" class="sidebar-link" data-view="settings">Settings</a>
+        <a href="#" class="sidebar-link" data-view="info">About</a>
+      </nav>
+
+      <div class="mast-tools">
+        <button type="button" class="search-box" id="global-search-toggle" aria-label="Search your checks">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.6 12.6 17 17"/></svg>
+          <span class="search-placeholder-text" id="search-typing">Search</span>
+          <kbd class="search-kbd">Ctrl K</kbd>
+        </button>
+        <a class="mast-gh" href="https://github.com/Sunil56224972/hallucination-Hunter" target="_blank" rel="noopener">GitHub</a>
+      </div>
     </div>
-  </aside>
+  </header>
 
-  <!-- Main -->
-  <div class="main-wrapper">
+  <main class="main-wrapper" id="main">
 
-    <!-- ═══════════ ANALYZER VIEW ═══════════ -->
+    <!-- Check -->
     <section class="view active" id="view-analyzer">
-      <header class="page-header">
-        <div class="page-header-left">
-          <h1 class="page-title">Hallucination Hunter</h1>
-          <p class="page-subtitle">Claim-level fact verification for AI-generated text</p>
-        </div>
-        <div class="page-header-right">
-          <div class="search-box" id="global-search-toggle">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <span class="search-placeholder-text" id="search-typing"></span>
-            <span class="search-cursor"></span>
-            <kbd class="search-kbd">⌘K</kbd>
-          </div>
-
-          <!-- Search Overlay -->
-          <div class="search-overlay hidden" id="search-overlay">
-            <div class="search-modal">
-              <div class="search-input-row">
-                <svg class="search-modal-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" class="search-input" id="search-input" placeholder="Search analyses, claims, sources…" autocomplete="off" autofocus>
-                <button class="search-close-btn" id="search-close">
-                  <kbd>ESC</kbd>
-                </button>
-              </div>
-              <div class="search-results" id="search-results">
-                <div class="search-empty-state">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c4bdb4" stroke-width="1.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                  <p>Type to search across your analyses, claims and sources</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <header class="page-header hero">
+        <p class="eyebrow">Fact-checking for AI answers</p>
+        <h1 class="page-title">Which parts of this answer are <em class="pencil">actually</em> true?</h1>
+        <p class="page-subtitle">Paste a reply from ChatGPT, Gemini, Claude or any other model. Each factual claim is pulled out, checked, and marked with a source you can open yourself.</p>
       </header>
 
-      <!-- Analyzer Sub-Tabs -->
+      <dl class="ledger" id="dashboard-stats">
+        <div class="ledger-item"><dt>Checks run</dt><dd id="dash-total">0</dd></div>
+        <div class="ledger-item"><dt>Average trust</dt><dd id="dash-avg-score">0<span class="stat-unit">%</span></dd></div>
+        <div class="ledger-item"><dt>Claims checked</dt><dd id="dash-claims">0</dd></div>
+        <div class="ledger-item"><dt>Held up</dt><dd id="dash-accuracy">0<span class="stat-unit">%</span></dd></div>
+      </dl>
+
       <div class="tabs-bar" id="analyzer-tabs">
-        <button class="tab active" data-subtab="verify">Verify text</button>
-        <button class="tab" data-subtab="how">How it works</button>
-        <button class="tab" data-subtab="sources">Sources</button>
+        <button type="button" class="tab active" data-subtab="verify">Check text</button>
+        <button type="button" class="tab" data-subtab="how">How it works</button>
+        <button type="button" class="tab" data-subtab="sources">Sources</button>
       </div>
 
-      <!-- Sub-tab: Verify text -->
       <div class="subtab-content active" id="subtab-verify">
-        <!-- Dashboard Stats -->
-        <div class="dashboard-stats" id="dashboard-stats">
-          <div class="stat-card">
-            <div class="stat-val" id="dash-total">0</div>
-            <div class="stat-label">Total Analyses</div>
+        <div class="input-card">
+          <label class="input-label" for="llm-input">Text to check</label>
+          <div class="textarea-wrap">
+            <textarea id="llm-input" placeholder="Paste the answer here. A paragraph or two works best." spellcheck="false"></textarea>
+            <button type="button" class="mic-btn" id="btn-mic" title="Dictate" aria-label="Dictate text">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4 9.5a6 6 0 0 0 12 0M10 15.5V18"/></svg>
+            </button>
           </div>
-          <div class="stat-card">
-            <div class="stat-val" id="dash-avg-score">0<span class="stat-unit">%</span></div>
-            <div class="stat-label">Avg Trust Score</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val" id="dash-claims">0</div>
-            <div class="stat-label">Claims Checked</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val" id="dash-accuracy">0<span class="stat-unit">%</span></div>
-            <div class="stat-label">Accuracy Rate</div>
-          </div>
-        </div>
-        <div class="content-section">
-          <div class="section-label">
-            <h2>Paste any LLM-generated text</h2>
-            <p>We'll extract every factual claim, cross-reference it against trusted sources, and surface what's verified, unverifiable, or incorrect.</p>
-          </div>
-          <div class="input-card">
-            <div class="textarea-wrap">
-              <textarea id="llm-input" placeholder="Paste AI-generated text here..." spellcheck="false"></textarea>
-              <button class="mic-btn" id="btn-mic" title="Voice input">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              </button>
-            </div>
-            <div class="input-bar">
-              <span class="char-indicator"><span id="char-count">0</span> chars</span>
-              <div class="input-actions">
-                <label class="batch-toggle" title="Separate texts with --- for batch analysis">
-                  <input type="checkbox" id="batch-mode"> Batch
-                </label>
-                <button class="btn-text" id="btn-clear">Clear</button>
-                <button class="btn-text" id="btn-example">Load<span class="btn-label-full"> example</span></button>
-                <button class="btn-solid" id="btn-analyze">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
-                  Analyze<span class="btn-label-full"> claims</span>
-                </button>
-              </div>
+          <div class="input-bar">
+            <span class="char-indicator"><span id="char-count">0</span> characters</span>
+            <div class="input-actions">
+              <label class="batch-toggle" title="Put --- on its own line between texts to check several at once">
+                <input type="checkbox" id="batch-mode"> Batch
+              </label>
+              <button type="button" class="btn-text" id="btn-clear">Clear</button>
+              <button type="button" class="btn-text" id="btn-example">Try a sample</button>
+              <button type="button" class="btn-solid" id="btn-analyze">Check claims</button>
             </div>
           </div>
         </div>
 
-        <!-- Processing -->
-        <div class="processing hidden" id="processing">
+        <div class="processing hidden" id="processing" aria-live="polite">
           <div class="process-card">
             <div class="process-step active" id="ps-extract">
-              <div class="ps-dot"></div>
-              <div class="ps-text"><span class="ps-label">Extracting claims</span><span class="ps-desc">Parsing text into individual factual statements</span></div>
+              <div class="ps-dot">1</div>
+              <div class="ps-text"><span class="ps-label">Pulling out claims</span><span class="ps-desc">Splitting the text into single statements that can be checked</span></div>
               <div class="ps-status"><div class="loader"></div></div>
             </div>
             <div class="process-step" id="ps-search">
-              <div class="ps-dot"></div>
-              <div class="ps-text"><span class="ps-label">Retrieving sources</span><span class="ps-desc">Searching trusted knowledge bases</span></div>
+              <div class="ps-dot">2</div>
+              <div class="ps-text"><span class="ps-label">Finding sources</span><span class="ps-desc">Matching each claim to a reference worth reading</span></div>
               <div class="ps-status"></div>
             </div>
             <div class="process-step" id="ps-verify">
-              <div class="ps-dot"></div>
-              <div class="ps-text"><span class="ps-label">Verifying &amp; scoring</span><span class="ps-desc">Cross-referencing claims with confidence scoring</span></div>
+              <div class="ps-dot">3</div>
+              <div class="ps-text"><span class="ps-label">Checking and scoring</span><span class="ps-desc">Deciding what holds up and how sure we are</span></div>
               <div class="ps-status"></div>
             </div>
           </div>
@@ -176,274 +119,256 @@
           </div>
         </div>
 
-        <!-- Results -->
         <div class="results hidden" id="results">
-          <div class="results-toolbar">
-            <div class="results-actions">
-              <button class="action-btn" id="btn-export" title="Export as PDF">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                Export PDF
-              </button>
-              <button class="action-btn" id="btn-copy" title="Copy results">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                Copy
-              </button>
-              <button class="action-btn" id="btn-share" title="Share analysis">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                Share
-              </button>
-            </div>
-          </div>
-          <div class="summary-row">
-            <div class="summary-pill"><span class="pill-num" id="s-total">0</span><span class="pill-label">claims</span></div>
-            <div class="summary-pill pill-verified">
-              <span class="pill-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20,6 9,17 4,12"/></svg></span>
-              <span class="pill-num" id="s-verified">0</span><span class="pill-label">Verified</span>
-            </div>
-            <div class="summary-pill pill-unverifiable">
-              <span class="pill-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
-              <span class="pill-num" id="s-unverifiable">0</span><span class="pill-label">Unverifiable</span>
-            </div>
-            <div class="summary-pill pill-false">
-              <span class="pill-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
-              <span class="pill-num" id="s-false">0</span><span class="pill-label">Incorrect</span>
-            </div>
-            <div class="summary-pill pill-score">
-              <div class="score-donut">
-                <svg viewBox="0 0 44 44">
-                  <circle cx="22" cy="22" r="18" fill="none" stroke="#e8e2da" stroke-width="3.5"/>
-                  <circle cx="22" cy="22" r="18" fill="none" stroke="#1a7f64" stroke-width="3.5" stroke-dasharray="113.1" stroke-dashoffset="113.1" stroke-linecap="round" id="score-arc" transform="rotate(-90 22 22)"/>
+          <div class="results-head">
+            <div class="score-block">
+              <div class="score-donut" id="score-donut">
+                <svg viewBox="0 0 44 44" aria-hidden="true">
+                  <circle class="score-track" cx="22" cy="22" r="18" fill="none" stroke-width="3"/>
+                  <circle cx="22" cy="22" r="18" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="113.1" stroke-dashoffset="113.1" stroke-linecap="round" id="score-arc" transform="rotate(-90 22 22)"/>
                 </svg>
                 <span class="donut-val" id="score-val">0</span>
               </div>
-              <span class="pill-label">Trust score</span>
+              <div class="score-copy">
+                <span class="score-title">Trust score</span>
+                <span class="score-note">Share of the <span id="s-total">0</span> claims that checked out.</span>
+              </div>
+            </div>
+            <ul class="summary-row">
+              <li class="summary-pill pill-verified"><span class="pill-num" id="s-verified">0</span><span class="pill-label">verified</span></li>
+              <li class="summary-pill pill-unverifiable"><span class="pill-num" id="s-unverifiable">0</span><span class="pill-label">unverifiable</span></li>
+              <li class="summary-pill pill-false"><span class="pill-num" id="s-false">0</span><span class="pill-label">wrong</span></li>
+            </ul>
+            <div class="results-actions">
+              <button type="button" class="action-btn" id="btn-copy">Copy report</button>
+              <button type="button" class="action-btn" id="btn-share">Copy link</button>
+              <button type="button" class="action-btn" id="btn-export">Print / PDF</button>
             </div>
           </div>
-          <div class="content-section">
-            <div class="section-label"><h2>Annotated text</h2><p>Hover highlighted segments for verification details</p></div>
-            <div class="annotated-card" id="annotated-text"></div>
-          </div>
-          <div class="content-section">
+
+          <section class="content-section">
             <div class="section-label">
-              <h2>Claims breakdown</h2>
+              <h2>Your text, marked up</h2>
+              <p>Hover a marked passage to see what we found.</p>
+            </div>
+            <div class="legend" aria-hidden="true">
+              <span class="legend-item"><span class="claim-hl verified">verified</span></span>
+              <span class="legend-item"><span class="claim-hl unverifiable">unverifiable</span></span>
+              <span class="legend-item"><span class="claim-hl false">wrong</span></span>
+            </div>
+            <div class="annotated-card" id="annotated-text"></div>
+          </section>
+
+          <section class="content-section">
+            <div class="section-label section-label-row">
+              <h2>Claim by claim</h2>
               <div class="filter-tabs">
-                <button class="ftab active" data-filter="all">View all</button>
-                <button class="ftab" data-filter="verified">Verified</button>
-                <button class="ftab" data-filter="unverifiable">Unverifiable</button>
-                <button class="ftab" data-filter="false">Incorrect</button>
+                <button type="button" class="ftab active" data-filter="all">All</button>
+                <button type="button" class="ftab" data-filter="verified">Verified</button>
+                <button type="button" class="ftab" data-filter="unverifiable">Unverifiable</button>
+                <button type="button" class="ftab" data-filter="false">Wrong</button>
               </div>
             </div>
             <div class="claims-grid" id="claims-grid"></div>
-          </div>
+          </section>
         </div>
       </div>
 
-      <!-- Sub-tab: How it works -->
       <div class="subtab-content" id="subtab-how">
-        <div class="pipeline-section">
-          <div class="section-label"><h2>Verification pipeline</h2><p>Every analysis runs through three stages in real-time</p></div>
-          <div class="pipeline-steps">
-            <div class="pipe-card">
-              <div class="pipe-num">1</div>
-              <div class="pipe-body">
-                <h3>Claim extraction</h3>
-                <p>The input text is parsed into individual, atomic factual statements. Each sentence is analyzed and broken into its constituent claims — separating opinions, subjective statements, and connective tissue from verifiable facts.</p>
-                <div class="pipe-tech">
-                  <span class="tech-tag">NLP Parsing</span>
-                  <span class="tech-tag">Sentence Segmentation</span>
-                  <span class="tech-tag">Fact vs Opinion Detection</span>
-                </div>
-              </div>
-            </div>
-            <div class="pipe-card">
-              <div class="pipe-num">2</div>
-              <div class="pipe-body">
-                <h3>Source retrieval</h3>
-                <p>Each extracted claim is searched against a curated set of trusted knowledge bases — including Wikipedia, official documentation, government databases, academic publications, and authoritative reference sites. Multiple sources are retrieved per claim.</p>
-                <div class="pipe-tech">
-                  <span class="tech-tag">Knowledge Graph Lookup</span>
-                  <span class="tech-tag">Semantic Search</span>
-                  <span class="tech-tag">Multi-source Retrieval</span>
-                </div>
-              </div>
-            </div>
-            <div class="pipe-card">
-              <div class="pipe-num">3</div>
-              <div class="pipe-body">
-                <h3>Verification &amp; scoring</h3>
-                <p>Claims are cross-referenced against retrieved sources using entailment analysis. A confidence score (0–100%) is computed based on source agreement, source authority, and specificity of the match. Each claim is classified as verified, unverifiable, or incorrect.</p>
-                <div class="pipe-tech">
-                  <span class="tech-tag">Entailment Analysis</span>
-                  <span class="tech-tag">Confidence Scoring</span>
-                  <span class="tech-tag">Source Weighting</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ol class="steps">
+          <li class="step">
+            <h3>Split into claims</h3>
+            <p>A language model reads the text and breaks it into short statements that can each be true or false on their own. Opinions, questions and filler are left out, and numbers, dates and names are kept exactly as written.</p>
+          </li>
+          <li class="step">
+            <h3>Check each one</h3>
+            <p>Every claim is checked against well-established facts. The checker is told to answer &ldquo;unverifiable&rdquo; rather than guess, and to give the correct figure whenever something is wrong.</p>
+          </li>
+          <li class="step">
+            <h3>Score and cite</h3>
+            <p>Each claim gets a confidence from 0 to 100 and a link to read further. The trust score is simply the share of claims that came back verified. Anything under your confidence threshold in Settings is dimmed.</p>
+          </li>
+        </ol>
 
-        <div class="content-section">
-          <div class="section-label"><h2>Claim classifications</h2></div>
+        <section class="content-section">
+          <div class="section-label"><h2>What the marks mean</h2></div>
           <div class="class-grid">
             <div class="class-card class-verified">
-              <div class="class-icon">
-                <img src="verified-icon.png" alt="Verified" width="36" height="36" style="display:block;">
-              </div>
+              <svg class="mark mark-verified" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>
               <h4>Verified</h4>
-              <p>The claim is directly supported by at least one trusted source with high confidence. The source, link, and matching evidence are provided.</p>
+              <p>Backed by a trusted source with high confidence. The source is linked so you can see it for yourself.</p>
             </div>
             <div class="class-card class-unverifiable">
-              <div class="class-icon">
-                <img src="unverifiable-icon.png" alt="Unverifiable" width="36" height="36" style="display:block;">
-              </div>
+              <svg class="mark mark-unverifiable" viewBox="0 0 20 20" aria-hidden="true"><path d="M7.3 7.6a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1.1.9-1.1 1.6v.5"/><circle class="dot" cx="10" cy="15.4" r="1.1"/></svg>
               <h4>Unverifiable</h4>
-              <p>No matching source could confirm or deny the claim. This doesn't mean it's false — just that it cannot be independently verified with available data.</p>
+              <p>Nothing solid either way. That doesn&rsquo;t make it false, it just means you shouldn&rsquo;t lean on it without checking.</p>
             </div>
             <div class="class-card class-incorrect">
-              <div class="class-icon">
-                <img src="incorrect-icon.png" alt="Incorrect" width="36" height="36" style="display:block;">
-              </div>
-              <h4>Incorrect</h4>
-              <p>The claim is contradicted by trusted sources. The correct information and the contradicting source are provided for transparency.</p>
+              <svg class="mark mark-false" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
+              <h4>Wrong</h4>
+              <p>Contradicted by reliable sources. The explanation gives the correct fact and where it comes from.</p>
             </div>
           </div>
-        </div>
+          <p class="fine-print">Treat this as a second opinion, not a ruling. Open the source before you rely on anything that matters.</p>
+        </section>
       </div>
 
-      <!-- Sub-tab: Sources -->
       <div class="subtab-content" id="subtab-sources">
-        <div class="content-section">
-          <div class="section-label"><h2>Trusted source directory</h2><p>All sources this tool cross-references for fact-checking</p></div>
-          <div class="sources-list" id="sources-list">
-
-            <div class="source-category-label">🏛️ Government &amp; Intergovernmental</div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.nasa.gov" target="_blank">NASA</a></div><div class="source-meta">nasa.gov · Space &amp; aeronautics research</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.who.int" target="_blank">World Health Organization</a></div><div class="source-meta">who.int · Global public health</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.cdc.gov" target="_blank">CDC</a></div><div class="source-meta">cdc.gov · Centers for Disease Control</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.fda.gov" target="_blank">U.S. Food and Drug Administration</a></div><div class="source-meta">fda.gov · Drug &amp; food safety</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.epa.gov" target="_blank">U.S. Environmental Protection Agency</a></div><div class="source-meta">epa.gov · Environment &amp; climate</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.noaa.gov" target="_blank">NOAA</a></div><div class="source-meta">noaa.gov · Weather &amp; oceans</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.usgs.gov" target="_blank">U.S. Geological Survey</a></div><div class="source-meta">usgs.gov · Geology &amp; natural hazards</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.un.org" target="_blank">United Nations</a></div><div class="source-meta">un.org · International affairs</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.worldbank.org" target="_blank">World Bank</a></div><div class="source-meta">worldbank.org · Global economics</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.imf.org" target="_blank">International Monetary Fund</a></div><div class="source-meta">imf.org · Global finance</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.unesco.org" target="_blank">UNESCO</a></div><div class="source-meta">unesco.org · Education, science &amp; culture</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.fao.org" target="_blank">FAO</a></div><div class="source-meta">fao.org · Food &amp; agriculture</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.cia.gov/the-world-factbook/" target="_blank">CIA World Factbook</a></div><div class="source-meta">cia.gov · Country &amp; world statistics</div></div></div>
-
-            <div class="source-category-label">🏥 Medical &amp; Health</div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.nih.gov" target="_blank">National Institutes of Health</a></div><div class="source-meta">nih.gov · Medical research</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.mayoclinic.org" target="_blank">Mayo Clinic</a></div><div class="source-meta">mayoclinic.org · Medical information</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://my.clevelandclinic.org" target="_blank">Cleveland Clinic</a></div><div class="source-meta">clevelandclinic.org · Health &amp; medicine</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.hopkinsmedicine.org" target="_blank">Johns Hopkins Medicine</a></div><div class="source-meta">hopkinsmedicine.org · Medical research</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.health.harvard.edu" target="_blank">Harvard Health Publishing</a></div><div class="source-meta">health.harvard.edu · Evidence-based health</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://pubmed.ncbi.nlm.nih.gov" target="_blank">PubMed</a></div><div class="source-meta">pubmed.ncbi.nlm.nih.gov · Medical literature</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.heart.org" target="_blank">American Heart Association</a></div><div class="source-meta">heart.org · Cardiovascular health</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.cancer.org" target="_blank">American Cancer Society</a></div><div class="source-meta">cancer.org · Cancer research</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.webmd.com" target="_blank">WebMD</a></div><div class="source-meta">webmd.com · Consumer health</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://medlineplus.gov" target="_blank">MedlinePlus</a></div><div class="source-meta">medlineplus.gov · NIH health info</div></div></div>
-
-            <div class="source-category-label">🔬 Academic &amp; Science</div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.nature.com" target="_blank">Nature</a></div><div class="source-meta">nature.com · Peer-reviewed science</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.science.org" target="_blank">Science</a></div><div class="source-meta">science.org · AAAS journal</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.scientificamerican.com" target="_blank">Scientific American</a></div><div class="source-meta">scientificamerican.com · Science journalism</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://arxiv.org" target="_blank">arXiv</a></div><div class="source-meta">arxiv.org · Preprint research</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.technologyreview.com" target="_blank">MIT Technology Review</a></div><div class="source-meta">technologyreview.com · Tech &amp; innovation</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://royalsociety.org" target="_blank">Royal Society</a></div><div class="source-meta">royalsociety.org · UK science academy</div></div></div>
-
-            <div class="source-category-label">📖 Reference &amp; Encyclopedia</div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://en.wikipedia.org" target="_blank">Wikipedia</a></div><div class="source-meta">wikipedia.org · Collaborative encyclopedia</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.britannica.com" target="_blank">Encyclopaedia Britannica</a></div><div class="source-meta">britannica.com · Academic reference</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.nationalgeographic.com" target="_blank">National Geographic</a></div><div class="source-meta">nationalgeographic.com · Science &amp; exploration</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.si.edu" target="_blank">Smithsonian Institution</a></div><div class="source-meta">si.edu · History &amp; culture</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.loc.gov" target="_blank">Library of Congress</a></div><div class="source-meta">loc.gov · US historical records</div></div></div>
-
-            <div class="source-category-label">📰 News &amp; Media</div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.bbc.com/news" target="_blank">BBC News</a></div><div class="source-meta">bbc.com · Global news coverage</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.reuters.com" target="_blank">Reuters</a></div><div class="source-meta">reuters.com · International news agency</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://apnews.com" target="_blank">Associated Press</a></div><div class="source-meta">apnews.com · Wire news service</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.nytimes.com" target="_blank">The New York Times</a></div><div class="source-meta">nytimes.com · US flagship newspaper</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.theguardian.com" target="_blank">The Guardian</a></div><div class="source-meta">theguardian.com · UK news &amp; analysis</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.washingtonpost.com" target="_blank">The Washington Post</a></div><div class="source-meta">washingtonpost.com · US politics &amp; news</div></div></div>
-
-            <div class="source-category-label">💻 Technology</div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://developer.mozilla.org" target="_blank">MDN Web Docs</a></div><div class="source-meta">developer.mozilla.org · Web standards</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.python.org" target="_blank">Python Software Foundation</a></div><div class="source-meta">python.org · Python language</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://stackoverflow.com" target="_blank">Stack Overflow</a></div><div class="source-meta">stackoverflow.com · Developer Q&amp;A</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://github.com" target="_blank">GitHub</a></div><div class="source-meta">github.com · Open source code</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.ieee.org" target="_blank">IEEE</a></div><div class="source-meta">ieee.org · Electrical engineering standards</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.tiobe.com/tiobe-index/" target="_blank">TIOBE Index</a></div><div class="source-meta">tiobe.com · Programming language rankings</div></div></div>
-
-            <div class="source-category-label">🏛️ History &amp; Culture</div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.history.com" target="_blank">History.com</a></div><div class="source-meta">history.com · Historical events</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.archives.gov" target="_blank">National Archives</a></div><div class="source-meta">archives.gov · US federal records</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.britishmuseum.org" target="_blank">British Museum</a></div><div class="source-meta">britishmuseum.org · World history &amp; artifacts</div></div></div>
-            <div class="source-row"><div class="source-icon">🔗</div><div class="source-info"><div class="source-name"><a href="https://www.metmuseum.org" target="_blank">Metropolitan Museum of Art</a></div><div class="source-meta">metmuseum.org · Art history</div></div></div>
-
+        <section class="content-section">
+          <div class="section-label">
+            <h2>Cited in your checks</h2>
+            <p>Every source your past checks pointed to, most used first.</p>
           </div>
-        </div>
+          <div class="sources-list" id="sources-list">
+            <div class="empty-state small-empty"><h3>Nothing yet</h3><p>Sources show up here after your first check.</p></div>
+          </div>
+        </section>
+        <section class="content-section">
+          <div class="section-label">
+            <h2>Where we look first</h2>
+            <p>Reference sites we trust for the kinds of claims people check most, grouped by subject.</p>
+          </div>
+          <div class="directory">
+            <section class="dir-group">
+              <h3 class="dir-title">Government &amp; Intergovernmental</h3>
+              <ul class="dir-list">
+                <li><a href="https://www.nasa.gov" target="_blank" rel="noopener"><span class="dir-name">NASA</span><span class="dir-domain">nasa.gov</span></a></li>
+                <li><a href="https://www.who.int" target="_blank" rel="noopener"><span class="dir-name">World Health Organization</span><span class="dir-domain">who.int</span></a></li>
+                <li><a href="https://www.cdc.gov" target="_blank" rel="noopener"><span class="dir-name">CDC</span><span class="dir-domain">cdc.gov</span></a></li>
+                <li><a href="https://www.fda.gov" target="_blank" rel="noopener"><span class="dir-name">U.S. Food and Drug Administration</span><span class="dir-domain">fda.gov</span></a></li>
+                <li><a href="https://www.epa.gov" target="_blank" rel="noopener"><span class="dir-name">U.S. Environmental Protection Agency</span><span class="dir-domain">epa.gov</span></a></li>
+                <li><a href="https://www.noaa.gov" target="_blank" rel="noopener"><span class="dir-name">NOAA</span><span class="dir-domain">noaa.gov</span></a></li>
+                <li><a href="https://www.usgs.gov" target="_blank" rel="noopener"><span class="dir-name">U.S. Geological Survey</span><span class="dir-domain">usgs.gov</span></a></li>
+                <li><a href="https://www.un.org" target="_blank" rel="noopener"><span class="dir-name">United Nations</span><span class="dir-domain">un.org</span></a></li>
+                <li><a href="https://www.worldbank.org" target="_blank" rel="noopener"><span class="dir-name">World Bank</span><span class="dir-domain">worldbank.org</span></a></li>
+                <li><a href="https://www.imf.org" target="_blank" rel="noopener"><span class="dir-name">International Monetary Fund</span><span class="dir-domain">imf.org</span></a></li>
+                <li><a href="https://www.unesco.org" target="_blank" rel="noopener"><span class="dir-name">UNESCO</span><span class="dir-domain">unesco.org</span></a></li>
+                <li><a href="https://www.fao.org" target="_blank" rel="noopener"><span class="dir-name">FAO</span><span class="dir-domain">fao.org</span></a></li>
+                <li><a href="https://www.cia.gov/the-world-factbook/" target="_blank" rel="noopener"><span class="dir-name">CIA World Factbook</span><span class="dir-domain">cia.gov</span></a></li>
+              </ul>
+            </section>
+            <section class="dir-group">
+              <h3 class="dir-title">Medical &amp; Health</h3>
+              <ul class="dir-list">
+                <li><a href="https://www.nih.gov" target="_blank" rel="noopener"><span class="dir-name">National Institutes of Health</span><span class="dir-domain">nih.gov</span></a></li>
+                <li><a href="https://www.mayoclinic.org" target="_blank" rel="noopener"><span class="dir-name">Mayo Clinic</span><span class="dir-domain">mayoclinic.org</span></a></li>
+                <li><a href="https://my.clevelandclinic.org" target="_blank" rel="noopener"><span class="dir-name">Cleveland Clinic</span><span class="dir-domain">clevelandclinic.org</span></a></li>
+                <li><a href="https://www.hopkinsmedicine.org" target="_blank" rel="noopener"><span class="dir-name">Johns Hopkins Medicine</span><span class="dir-domain">hopkinsmedicine.org</span></a></li>
+                <li><a href="https://www.health.harvard.edu" target="_blank" rel="noopener"><span class="dir-name">Harvard Health Publishing</span><span class="dir-domain">health.harvard.edu</span></a></li>
+                <li><a href="https://pubmed.ncbi.nlm.nih.gov" target="_blank" rel="noopener"><span class="dir-name">PubMed</span><span class="dir-domain">pubmed.ncbi.nlm.nih.gov</span></a></li>
+                <li><a href="https://www.heart.org" target="_blank" rel="noopener"><span class="dir-name">American Heart Association</span><span class="dir-domain">heart.org</span></a></li>
+                <li><a href="https://www.cancer.org" target="_blank" rel="noopener"><span class="dir-name">American Cancer Society</span><span class="dir-domain">cancer.org</span></a></li>
+                <li><a href="https://www.webmd.com" target="_blank" rel="noopener"><span class="dir-name">WebMD</span><span class="dir-domain">webmd.com</span></a></li>
+                <li><a href="https://medlineplus.gov" target="_blank" rel="noopener"><span class="dir-name">MedlinePlus</span><span class="dir-domain">medlineplus.gov</span></a></li>
+              </ul>
+            </section>
+            <section class="dir-group">
+              <h3 class="dir-title">Academic &amp; Science</h3>
+              <ul class="dir-list">
+                <li><a href="https://www.nature.com" target="_blank" rel="noopener"><span class="dir-name">Nature</span><span class="dir-domain">nature.com</span></a></li>
+                <li><a href="https://www.science.org" target="_blank" rel="noopener"><span class="dir-name">Science</span><span class="dir-domain">science.org</span></a></li>
+                <li><a href="https://www.scientificamerican.com" target="_blank" rel="noopener"><span class="dir-name">Scientific American</span><span class="dir-domain">scientificamerican.com</span></a></li>
+                <li><a href="https://arxiv.org" target="_blank" rel="noopener"><span class="dir-name">arXiv</span><span class="dir-domain">arxiv.org</span></a></li>
+                <li><a href="https://www.technologyreview.com" target="_blank" rel="noopener"><span class="dir-name">MIT Technology Review</span><span class="dir-domain">technologyreview.com</span></a></li>
+                <li><a href="https://royalsociety.org" target="_blank" rel="noopener"><span class="dir-name">Royal Society</span><span class="dir-domain">royalsociety.org</span></a></li>
+              </ul>
+            </section>
+            <section class="dir-group">
+              <h3 class="dir-title">Reference &amp; Encyclopedia</h3>
+              <ul class="dir-list">
+                <li><a href="https://en.wikipedia.org" target="_blank" rel="noopener"><span class="dir-name">Wikipedia</span><span class="dir-domain">wikipedia.org</span></a></li>
+                <li><a href="https://www.britannica.com" target="_blank" rel="noopener"><span class="dir-name">Encyclopaedia Britannica</span><span class="dir-domain">britannica.com</span></a></li>
+                <li><a href="https://www.nationalgeographic.com" target="_blank" rel="noopener"><span class="dir-name">National Geographic</span><span class="dir-domain">nationalgeographic.com</span></a></li>
+                <li><a href="https://www.si.edu" target="_blank" rel="noopener"><span class="dir-name">Smithsonian Institution</span><span class="dir-domain">si.edu</span></a></li>
+                <li><a href="https://www.loc.gov" target="_blank" rel="noopener"><span class="dir-name">Library of Congress</span><span class="dir-domain">loc.gov</span></a></li>
+              </ul>
+            </section>
+            <section class="dir-group">
+              <h3 class="dir-title">News &amp; Media</h3>
+              <ul class="dir-list">
+                <li><a href="https://www.bbc.com/news" target="_blank" rel="noopener"><span class="dir-name">BBC News</span><span class="dir-domain">bbc.com</span></a></li>
+                <li><a href="https://www.reuters.com" target="_blank" rel="noopener"><span class="dir-name">Reuters</span><span class="dir-domain">reuters.com</span></a></li>
+                <li><a href="https://apnews.com" target="_blank" rel="noopener"><span class="dir-name">Associated Press</span><span class="dir-domain">apnews.com</span></a></li>
+                <li><a href="https://www.nytimes.com" target="_blank" rel="noopener"><span class="dir-name">The New York Times</span><span class="dir-domain">nytimes.com</span></a></li>
+                <li><a href="https://www.theguardian.com" target="_blank" rel="noopener"><span class="dir-name">The Guardian</span><span class="dir-domain">theguardian.com</span></a></li>
+                <li><a href="https://www.washingtonpost.com" target="_blank" rel="noopener"><span class="dir-name">The Washington Post</span><span class="dir-domain">washingtonpost.com</span></a></li>
+              </ul>
+            </section>
+            <section class="dir-group">
+              <h3 class="dir-title">Technology</h3>
+              <ul class="dir-list">
+                <li><a href="https://developer.mozilla.org" target="_blank" rel="noopener"><span class="dir-name">MDN Web Docs</span><span class="dir-domain">developer.mozilla.org</span></a></li>
+                <li><a href="https://www.python.org" target="_blank" rel="noopener"><span class="dir-name">Python Software Foundation</span><span class="dir-domain">python.org</span></a></li>
+                <li><a href="https://stackoverflow.com" target="_blank" rel="noopener"><span class="dir-name">Stack Overflow</span><span class="dir-domain">stackoverflow.com</span></a></li>
+                <li><a href="https://github.com" target="_blank" rel="noopener"><span class="dir-name">GitHub</span><span class="dir-domain">github.com</span></a></li>
+                <li><a href="https://www.ieee.org" target="_blank" rel="noopener"><span class="dir-name">IEEE</span><span class="dir-domain">ieee.org</span></a></li>
+                <li><a href="https://www.tiobe.com/tiobe-index/" target="_blank" rel="noopener"><span class="dir-name">TIOBE Index</span><span class="dir-domain">tiobe.com</span></a></li>
+              </ul>
+            </section>
+            <section class="dir-group">
+              <h3 class="dir-title">History &amp; Culture</h3>
+              <ul class="dir-list">
+                <li><a href="https://www.history.com" target="_blank" rel="noopener"><span class="dir-name">History.com</span><span class="dir-domain">history.com</span></a></li>
+                <li><a href="https://www.archives.gov" target="_blank" rel="noopener"><span class="dir-name">National Archives</span><span class="dir-domain">archives.gov</span></a></li>
+                <li><a href="https://www.britishmuseum.org" target="_blank" rel="noopener"><span class="dir-name">British Museum</span><span class="dir-domain">britishmuseum.org</span></a></li>
+                <li><a href="https://www.metmuseum.org" target="_blank" rel="noopener"><span class="dir-name">Metropolitan Museum of Art</span><span class="dir-domain">metmuseum.org</span></a></li>
+              </ul>
+            </section>
+          </div>
+        </section>
       </div>
-
     </section>
 
-    <!-- ═══════════ HISTORY VIEW ═══════════ -->
+    <!-- History -->
     <section class="view" id="view-history">
-      <header class="page-header">
-        <div class="page-header-left">
-          <h1 class="page-title">Analysis History</h1>
-          <p class="page-subtitle">Your previous fact-check analyses — stored in real-time</p>
+      <header class="page-header page-header-row">
+        <div>
+          <h1 class="page-title">History</h1>
+          <p class="page-subtitle">Checks you have run, saved under an anonymous ID kept in this browser.</p>
         </div>
-        <div class="page-header-right">
-          <button class="btn-text btn-danger" id="btn-clear-history">Clear all</button>
-        </div>
+        <button type="button" class="btn-text btn-danger" id="btn-clear-history">Clear all</button>
       </header>
       <div class="history-list" id="history-list">
         <div class="empty-state" id="history-empty">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c4bdb4" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-          <h3>No analyses yet</h3>
-          <p>Run your first analysis and it will show up here</p>
+          <h3>No checks yet</h3>
+          <p>Run one from the Check tab and it will be listed here.</p>
         </div>
       </div>
-
-      <!-- History detail overlay -->
       <div class="history-detail hidden" id="history-detail">
-        <button class="btn-text" id="btn-back-history">← Back to history</button>
+        <button type="button" class="btn-text btn-back" id="btn-back-history">&larr; Back to history</button>
         <div id="history-detail-content"></div>
       </div>
     </section>
 
-    <!-- ═══════════ SETTINGS VIEW ═══════════ -->
+    <!-- Settings -->
     <section class="view" id="view-settings">
-      <header class="page-header">
-        <div class="page-header-left">
+      <header class="page-header page-header-row">
+        <div>
           <h1 class="page-title">Settings</h1>
-          <p class="page-subtitle">Configure your verification pipeline</p>
+          <p class="page-subtitle">How strict the checker should be.</p>
         </div>
-        <div class="page-header-right">
-          <button class="btn-solid" id="btn-save-settings">Save settings</button>
-        </div>
+        <button type="button" class="btn-solid" id="btn-save-settings">Save</button>
       </header>
       <div class="tabs-bar" id="settings-tabs">
-        <button class="tab active" data-settab="general">General</button>
-        <button class="tab" data-settab="database">Database</button>
+        <button type="button" class="tab active" data-settab="general">General</button>
+        <button type="button" class="tab" data-settab="database">Storage</button>
       </div>
 
-      <!-- General Settings -->
       <div class="settab-content active" id="settab-general">
         <div class="settings-grid">
           <div class="setting-row">
-            <div class="setting-left"><span class="setting-name">Verification Engine</span><span class="setting-hint">The AI engine powering claim extraction and fact-checking</span></div>
+            <div class="setting-left"><span class="setting-name">Checking model</span><span class="setting-hint">Used for pulling out claims and checking them.</span></div>
             <div class="setting-right">
               <select class="select-input" id="s-api-provider">
-                <option value="groq" selected>Groq — LLaMA 3 (Active)</option>
+                <option value="groq" selected>Groq &middot; gpt-oss-120b</option>
               </select>
             </div>
           </div>
           <div class="setting-row">
-            <div class="setting-left"><span class="setting-name">Confidence threshold</span><span class="setting-hint">Minimum confidence to mark a claim as verified</span></div>
+            <div class="setting-left"><span class="setting-name">Confidence threshold</span><span class="setting-hint">Claims below this are not counted as verified. It moves automatically after each check.</span></div>
             <div class="setting-right">
               <div class="range-wrap">
-                <input type="range" min="50" max="95" value="75" class="range-input" id="s-conf-range">
+                <input type="range" min="50" max="95" value="75" class="range-input" id="s-conf-range" aria-label="Confidence threshold">
                 <span class="range-val" id="s-conf-val">75%</span>
               </div>
             </div>
@@ -451,85 +376,103 @@
         </div>
       </div>
 
-      <!-- Database Settings -->
       <div class="settab-content" id="settab-database">
         <div class="settings-grid">
           <div class="setting-row">
-            <div class="setting-left"><span class="setting-name">Supabase status</span><span class="setting-hint">Connection to your Supabase backend</span></div>
-            <div class="setting-right"><span class="db-status" id="db-status">Checking...</span></div>
+            <div class="setting-left"><span class="setting-name">Supabase</span><span class="setting-hint">Where checks and settings are stored.</span></div>
+            <div class="setting-right"><span class="db-status" id="db-status">Checking&hellip;</span></div>
           </div>
           <div class="setting-row">
-            <div class="setting-left"><span class="setting-name">Total analyses stored</span><span class="setting-hint">Number of analyses in database</span></div>
-            <div class="setting-right"><span class="db-count" id="db-analyses-count">—</span></div>
+            <div class="setting-left"><span class="setting-name">Checks stored</span><span class="setting-hint">Saved under your browser ID.</span></div>
+            <div class="setting-right"><span class="db-count" id="db-analyses-count">&ndash;</span></div>
           </div>
           <div class="setting-row">
-            <div class="setting-left"><span class="setting-name">Total claims stored</span><span class="setting-hint">Number of individual claims verified</span></div>
-            <div class="setting-right"><span class="db-count" id="db-claims-count">—</span></div>
+            <div class="setting-left"><span class="setting-name">Claims stored</span><span class="setting-hint">Individual claims across all checks.</span></div>
+            <div class="setting-right"><span class="db-count" id="db-claims-count">&ndash;</span></div>
           </div>
           <div class="setting-row">
-            <div class="setting-left"><span class="setting-name">Project region</span><span class="setting-hint">Supabase deployment region</span></div>
-            <div class="setting-right"><span class="db-count">ap-south-1 (Mumbai)</span></div>
+            <div class="setting-left"><span class="setting-name">Region</span><span class="setting-hint">Where the database runs.</span></div>
+            <div class="setting-right"><span class="db-count">ap-south-1, Mumbai</span></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ═══════════ INFO VIEW ═══════════ -->
+    <!-- About -->
     <section class="view" id="view-info">
       <header class="page-header">
-        <div class="page-header-left">
-          <h1 class="page-title">About</h1>
-          <p class="page-subtitle">HF3-SW-22 &middot; Hallucination Hunter</p>
-        </div>
+        <p class="eyebrow">HF3-SW-22</p>
+        <h1 class="page-title">About this project</h1>
       </header>
       <div class="about-card">
-        <h3>What is this?</h3>
-        <p>A claim-level fact-verification layer for LLM outputs that visually distinguishes verified, unverifiable, and false claims with source attribution — improving user trust and transparency in AI-generated answers.</p>
-        <h3>How it works</h3>
+        <p class="lede">Language models write with the same confidence whether they are right or making things up. Hallucination Hunter reads an answer one claim at a time so you can see exactly which sentences to trust.</p>
+        <h3>How a check works</h3>
         <ol>
-          <li><strong>Claim extraction</strong> — Parses any LLM response into individual, atomic factual claims.</li>
-          <li><strong>Source retrieval</strong> — Searches trusted knowledge bases for each claim.</li>
-          <li><strong>Verification &amp; scoring</strong> — Cross-references each claim against retrieved sources and assigns a confidence score.</li>
-          <li><strong>Visual annotation</strong> — Highlights the original text with color-coded claim statuses and detailed source attribution.</li>
+          <li><strong>Extraction.</strong> The answer is split into single factual claims.</li>
+          <li><strong>Verification.</strong> Each claim is checked and given a confidence score.</li>
+          <li><strong>Attribution.</strong> Every verdict comes with a source to read.</li>
+          <li><strong>Mark-up.</strong> The original text is annotated so problems are easy to spot.</li>
         </ol>
-        <h3>Tech stack</h3>
+        <h3>Under the hood</h3>
         <ul>
-          <li><strong>Frontend</strong> — Vanilla HTML/CSS/JS with DM Sans typography</li>
-          <li><strong>Database</strong> — Supabase (PostgreSQL) for real-time persistence</li>
-          <li><strong>Verification</strong> — Pattern-matched claim database (demo) / LLM API (production)</li>
+          <li><strong>Front end:</strong> plain HTML, CSS and JavaScript. No framework, no build step.</li>
+          <li><strong>Model:</strong> openai/gpt-oss-120b on Groq. On Vercel the API key stays server-side in <code>api/groq.js</code>.</li>
+          <li><strong>Storage:</strong> Supabase (Postgres) for checks, claims and settings.</li>
+          <li><strong>Also on:</strong> a Chrome extension and an Android app built from this same code.</li>
         </ul>
       </div>
     </section>
 
+    <footer class="colophon">
+      <span>Hallucination Hunter</span>
+      <span>A second opinion for AI answers. Always read the source.</span>
+      <a href="https://github.com/Sunil56224972/hallucination-Hunter" target="_blank" rel="noopener">Source on GitHub</a>
+    </footer>
+  </main>
+
+  <!-- Search -->
+  <div class="search-overlay hidden" id="search-overlay">
+    <div class="search-modal" role="dialog" aria-label="Search">
+      <div class="search-input-row">
+        <svg class="search-modal-icon" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.6 12.6 17 17"/></svg>
+        <input type="text" class="search-input" id="search-input" placeholder="Search past checks, claims and sources" autocomplete="off">
+        <button type="button" class="search-close-btn" id="search-close"><kbd>Esc</kbd></button>
+      </div>
+      <div class="search-results" id="search-results">
+        <div class="search-empty-state"><p>Start typing to search everything you have checked.</p></div>
+      </div>
+    </div>
   </div>
 
-  <!-- Tooltip -->
   <div class="tip hidden" id="tip">
     <div class="tip-head"><span class="tip-status"></span><span class="tip-conf"></span></div>
     <div class="tip-body"></div>
     <div class="tip-source"></div>
   </div>
 
-  <!-- Toast notifications -->
   <div class="toast-container" id="toast-container"></div>
-  <!-- Mobile Bottom Nav (visible only on mobile) -->
-  <nav class="mobile-nav" id="mobile-nav">
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Main">
     <div class="mobile-nav-inner">
-      <button class="mobile-nav-link active" data-view="analyzer" onclick="switchView('analyzer'); updateMobileNav(this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span class="mobile-nav-label">Analyze</span>
+      <button type="button" class="mobile-nav-link active" data-view="analyzer" onclick="switchView('analyzer'); updateMobileNav(this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 5h13M3.5 10h4.5M11 10h5.5M3.5 15h8"/></svg>
+        <span class="mobile-nav-label">Check</span>
       </button>
-      <button class="mobile-nav-link" data-view="history" onclick="switchView('history'); updateMobileNav(this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <button type="button" class="mobile-nav-link" data-view="history" onclick="switchView('history'); updateMobileNav(this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.2 10a6.8 6.8 0 1 0 2-4.8M3 3.5v2.8h2.8"/><path d="M10 6.5V10l2.5 1.6"/></svg>
         <span class="mobile-nav-label">History</span>
       </button>
-      <button class="mobile-nav-link" data-view="sources" onclick="switchView('sources'); updateMobileNav(this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <button type="button" class="mobile-nav-link" data-view="sources" onclick="switchView('sources'); updateMobileNav(this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M10 5.5C8.4 4.3 6 3.8 3.5 4v11c2.5-.2 4.9.3 6.5 1.5 1.6-1.2 4-1.7 6.5-1.5V4c-2.5-.2-4.9.3-6.5 1.5zM10 5.5v11"/></svg>
         <span class="mobile-nav-label">Sources</span>
       </button>
-      <button class="mobile-nav-link" data-view="settings" onclick="switchView('settings'); updateMobileNav(this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <button type="button" class="mobile-nav-link" data-view="settings" onclick="switchView('settings'); updateMobileNav(this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 6h6M13.5 6h3M3.5 14h2M9.5 14h7"/><circle cx="11.5" cy="6" r="2"/><circle cx="7.5" cy="14" r="2"/></svg>
         <span class="mobile-nav-label">Settings</span>
+      </button>
+      <button type="button" class="mobile-nav-link" data-view="info" onclick="switchView('info'); updateMobileNav(this)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 9v4.5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor"/></svg>
+        <span class="mobile-nav-label">About</span>
       </button>
     </div>
   </nav>

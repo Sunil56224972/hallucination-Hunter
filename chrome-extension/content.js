@@ -1,5 +1,5 @@
 /* ==========================================
-   Hallucination Hunter — Content Script
+   Hallucination Hunter - Content Script
    Detects text selection/copy on any webpage
    and sends to the extension popup
    ========================================== */
@@ -45,26 +45,29 @@
 
     const toast = document.createElement('div');
     toast.id = 'hh-capture-toast';
+    toast.setAttribute('role', 'status');
     toast.innerHTML = `
       <div class="hh-toast-inner">
-        <svg width="16" height="16" viewBox="0 0 100 100" fill="none">
-          <circle cx="50" cy="50" r="45" fill="#3d3832"/>
-          <circle cx="50" cy="50" r="22" fill="none" stroke="#f7f4f0" stroke-width="5"/>
-          <circle cx="50" cy="50" r="8" fill="#f7f4f0"/>
-          <line x1="67" y1="67" x2="90" y2="90" stroke="#f7f4f0" stroke-width="6" stroke-linecap="round"/>
+        <svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="15" fill="#f3efe6"/>
+          <rect x="14" y="18" width="36" height="5" rx="2.5" fill="#1c1a17"/>
+          <rect x="14" y="29.5" width="12" height="5" rx="2.5" fill="#1c1a17"/>
+          <rect x="29" y="29.5" width="21" height="5" rx="2.5" fill="#d4502a"/>
+          <rect x="14" y="41" width="24" height="5" rx="2.5" fill="#1c1a17"/>
         </svg>
-        <span>Text captured! Open <strong>Hallucination Hunter</strong> to analyze.</span>
-        <button class="hh-toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        <span>Copied. Open <strong>Hallucination Hunter</strong> from the toolbar to check it.</span>
+        <button class="hh-toast-close" type="button" aria-label="Dismiss">&times;</button>
       </div>
     `;
+    toast.querySelector('.hh-toast-close').addEventListener('click', () => toast.remove());
     document.body.appendChild(toast);
 
     // Auto-remove after 3.5 seconds
     setTimeout(() => {
       if (toast.parentElement) {
-        toast.style.animation = 'hhToastOut 0.3s ease forwards';
-        setTimeout(() => toast.remove(), 300);
+        toast.classList.add('hh-leaving');
+        setTimeout(() => toast.remove(), 200);
       }
-    }, 3500);
+    }, 3000);
   }
 })();

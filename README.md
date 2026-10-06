@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" alt="Hallucination Hunter" width="72" height="72" style="border-radius: 16px;">
+  <img src="logo.png" alt="Hallucination Hunter" width="72" height="72">
 </p>
 
 <h1 align="center">Hallucination Hunter</h1>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://hallucination-hunter-web.vercel.app">Live Demo</a> &middot;
+  <a href="https://hallucination-hunter-five.vercel.app">Live Demo</a> &middot;
   <a href="#features">Features</a> &middot;
   <a href="#architecture">Architecture</a> &middot;
   <a href="#getting-started">Getting Started</a> &middot;
@@ -27,7 +27,7 @@ Existing tools only detect whether text was *written by AI*. They don't tell you
 
 ## Solution
 
-Hallucination Hunter splits AI-generated text into individual factual claims and verifies each one independently. Every claim receives a verdict (`Verified`, `Unverifiable`, or `Incorrect`), a confidence score, source attribution, and — when applicable — an auto-correction with the accurate fact.
+Hallucination Hunter splits AI-generated text into individual factual claims and verifies each one independently. Every claim receives a verdict (`Verified`, `Unverifiable`, or `Wrong`), a confidence score, source attribution, and — when applicable — an auto-correction with the accurate fact.
 
 Analysis completes in under 2 seconds using Groq's LPU inference hardware.
 
@@ -51,7 +51,7 @@ Analysis completes in under 2 seconds using Groq's LPU inference hardware.
 
 - **Voice input** — dictate text using Web Speech API
 - **Batch mode** — analyze multiple text blocks simultaneously
-- **Filter tabs** — view All / Verified / Unverifiable / Incorrect claims
+- **Filter tabs** — view All / Verified / Unverifiable / Wrong claims
 - **Annotated text** — original text highlighted inline with color-coded claim markers
 - **Example loader** — pre-loaded samples for quick demonstration
 
@@ -173,6 +173,23 @@ The browser extension allows fact-checking on any website without navigating awa
 4. Pin the extension in the toolbar
 
 Works on Chrome, Edge, Brave, Opera, and other Chromium-based browsers.
+
+---
+
+## Icons and Android build
+
+The mark is a dark tile with three lines of text, one struck in red. All sizes are generated from the same source:
+
+- `assets/` - favicon, apple-touch icon and PWA icons used by `manifest.webmanifest`
+- `chrome-extension/icons/` - 16, 32, 48 and 128 px extension icons
+- `resources/` - source artwork for the Android app (Capacitor)
+
+The Android app wraps the web app, so UI changes ship with it. To regenerate launcher and splash icons after changing the artwork:
+
+```bash
+npx @capacitor/assets generate --android
+npx cap sync android
+```
 
 ---
 
