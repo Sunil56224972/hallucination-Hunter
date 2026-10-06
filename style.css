@@ -1350,6 +1350,18 @@ mark.claim-hl:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 1
 
 /* ---------- smaller screens ---------- */
 
+/* tablets and narrow laptops: keep the masthead on one line */
+@media (max-width: 920px) {
+  .masthead-inner { gap: 20px; }
+  .sidebar-link { padding: 0 8px; }
+  .mast-tools { gap: 8px; }
+  .mast-gh, .search-kbd, .search-placeholder-text { display: none; }
+  .search-box { min-width: 0; width: 34px; height: 34px; padding: 0; justify-content: center; }
+}
+@media (max-width: 700px) and (min-width: 601px) {
+  .brand-name { display: none; }
+}
+
 @media (max-width: 860px) {
   .results-head { grid-template-columns: 1fr; gap: 16px; }
   .results-actions { justify-content: flex-start; }
@@ -1454,6 +1466,71 @@ mark.claim-hl:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 1
     transition: transform 0.3s var(--ease-out);
   }
   .mobile-nav-link.active::before { transform: scaleX(1); }
+
+  /* forms: 16px stops iOS from zooming in on focus */
+  .select-input, .filter-input, .search-input { font-size: 16px; }
+  .select-input, .filter-input { height: 44px; }
+  .filter-input { max-width: none; }
+  .select-input { width: 100%; }
+
+  .results-actions { display: grid; grid-template-columns: repeat(2, 1fr); width: 100%; }
+  .results-actions .action-btn { width: 100%; }
+  .summary-row { gap: 10px 18px; }
+  .score-note { max-width: none; }
+
+  .segmented { display: flex; width: 100%; }
+  .segmented button { flex: 1; padding: 0 8px; }
+
+  .search-overlay { padding: 0; align-items: stretch; }
+  .search-modal { width: 100%; max-width: none; height: 100%; max-height: none; border-radius: 0; border: 0; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); }
+  .search-results { max-height: none; flex: 1; }
+  .search-input-row { gap: 8px; padding: 0 4px 0 16px; }
+  .search-close-btn kbd { display: none; }
+  .search-close-btn::after { content: 'Cancel'; font-size: 15px; font-weight: 500; color: var(--ink-2); }
+  .dialog { padding: 20px 18px 14px; }
+}
+
+/* touch screens: 44px hit areas without changing how things look */
+@media (pointer: coarse) {
+  .tab { padding: 12px 0 12px; }
+  .tabs-bar { gap: 20px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .claim-card-top .claim-copy { width: 38px; height: 38px; margin: -4px -4px -4px auto; }
+  .action-btn { height: 40px; }
+  .btn-text { height: 40px; }
+  .ftab { min-height: 38px; }
+  .segmented button { height: 38px; }
+  .view-detail-btn { padding: 10px 0; margin: -6px 0; }
+  .history-delete { width: 40px; height: 40px; }
+  .colophon a { padding: 10px 0; }
+  .claim-source-direct a, .claim-src a { padding: 6px 0; }
+  .range-input { height: 32px; }
+  mark.claim-hl { padding-top: 2px; padding-bottom: 2px; }
+  .search-box { width: 40px; height: 40px; }
+  .search-result-item { padding-top: 12px; padding-bottom: 12px; }
+  .search-close-btn { padding: 10px; }
+}
+@media (pointer: coarse) and (min-width: 921px) {
+  .search-box { width: auto; }
+}
+
+/* very small phones (iPhone SE 1st gen, small Androids) */
+@media (max-width: 360px) {
+  .masthead-inner { padding: 0 12px; gap: 8px; }
+  .brand { gap: 8px; min-width: 0; flex-shrink: 1; }
+  .brand-name { font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mast-tools { gap: 2px; }
+  .main-wrapper { padding-left: 14px; padding-right: 14px; }
+  .page-title { font-size: 25px; }
+  .tabs-bar { gap: 16px; }
+  .ftab { font-size: 12px; gap: 4px; }
+}
+
+/* phones on their side: the bottom bar eats too much height */
+@media (max-height: 480px) and (orientation: landscape) and (max-width: 920px) {
+  .masthead { position: relative; }
+  .page-header { padding: 20px 0 14px; }
+  #llm-input { min-height: 120px; }
 }
 
 /* ---------- print ---------- */
