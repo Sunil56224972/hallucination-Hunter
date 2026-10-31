@@ -1,10 +1,9 @@
-// HALLUCINATION HUNTER - Full App with Supabase
+// HALLUCINATION HUNTER - Editorial Fact-Checking Desk with Supabase Sync
 
 const SUPABASE_URL = 'https://jdvafpwancenabxbnxbh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdmFmcHdhbmNlbmFieGJueGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMDMwNjgsImV4cCI6MjEwMTY3OTA2OH0.xVZOUOiO_uDzRLHbZ9jjCjV8bZ8cUpZaQINzIgn6QlA';
 
-// If the Supabase script is blocked (ad blocker, offline) the checker still works;
-// storage calls resolve with an error instead of throwing at load time.
+// Direct PostgREST fallback when the CDN UMD bundle is blocked or slow to initialize.
 function createRestFallbackDb(baseUrl, apiKey) {
   function from(table) {
     let method = 'GET';
@@ -102,8 +101,7 @@ function createRestFallbackDb(baseUrl, apiKey) {
 }
 const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : createRestFallbackDb(SUPABASE_URL, SUPABASE_KEY);
 
-// Anonymous User Isolation
-// Each browser gets a unique ID - users only see their own data
+// Anonymous browser identifier
 function getUserId() {
   let id = localStorage.getItem('hh_user_id');
   if (!id) {
@@ -122,6 +120,7 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
 // DOM refs
 const input = $('#llm-input');
 const charCount = $('#char-count');
+const wordCount = $('#word-count');
 const btnClear = $('#btn-clear');
 const btnExample = $('#btn-example');
 const btnAnalyze = $('#btn-analyze');
@@ -134,30 +133,29 @@ const toastContainer = $('#toast-container');
 
 let currentClaims = [];
 let currentText = '';
-let activeController = null; // AbortController for the check in progress
+let activeController = null;
 const REDUCED_MOTION = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DRAFT_KEY = 'hh_draft';
 const THEME_KEY = 'hh_theme';
 const STATUSES = ['verified', 'unverifiable', 'false'];
 
-// Inline SVG verdict marks (styled by .mark in style.css)
+// Bespoke editorial proofreader marks
 const MARKS = {
-  verified: '<svg class="mark mark-verified" viewBox="0 0 20 20" role="img" aria-label="Verified"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>',
-  unverifiable: '<svg class="mark mark-unverifiable" viewBox="0 0 20 20" role="img" aria-label="Unverifiable"><path d="M7.3 7.6a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1.1.9-1.1 1.6v.5"/><circle class="dot" cx="10" cy="15.4" r="1.1"/></svg>',
-  false: '<svg class="mark mark-false" viewBox="0 0 20 20" role="img" aria-label="Wrong"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>'
+  verified: '<svg class="mark mark-verified" viewBox="0 0 20 20" role="img" aria-label="Verified"><path class="mark-frame" d="M6.2 2.6h7.6l3.6 3.6v7.6l-3.6 3.6H6.2l-3.6-3.6V6.2Z"/><path d="M6.4 10.3l2.4 2.4 4.8-5.2"/></svg>',
+  unverifiable: '<svg class="mark mark-unverifiable" viewBox="0 0 20 20" role="img" aria-label="Unverifiable"><path class="mark-frame" d="M6.2 3.8H3.8v12.4h2.4M13.8 3.8h2.4v12.4h-2.4"/><path d="M8.3 7.8a1.9 1.9 0 1 1 2.5 1.8c-.5.2-.8.6-.8 1.2v.4"/><circle class="dot" cx="10" cy="13.8" r="0.95"/></svg>',
+  false: '<svg class="mark mark-false" viewBox="0 0 20 20" role="img" aria-label="Contradicted"><path class="mark-frame" d="M3.8 6.6V3.8h2.8M16.2 6.6V3.8h-2.8M3.8 13.4v2.8h2.8M16.2 13.4v2.8h-2.8"/><path d="M6.8 6.8l6.4 6.4M13.2 6.8l-6.4 6.4"/></svg>'
 };
-const VERDICT_LABELS = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Wrong' };
-const LINK_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-.9.9"/><path d="M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l.9-.9"/></svg>';
+const VERDICT_LABELS = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Contradicted' };
+const LINK_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 4.5h4v4M15.2 4.8 8.8 11.2"/><path d="M13.5 10.8v3.5a1.2 1.2 0 0 1-1.2 1.2H5.7a1.2 1.2 0 0 1-1.2-1.2V7.7a1.2 1.2 0 0 1 1.2-1.2h3.5"/></svg>';
+const STEP_CHECK_ICON = '<svg class="ps-check" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>';
 
 // TOAST NOTIFICATIONS
-
 const TOAST_ICONS = {
-  success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7fb08a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>',
-  error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e0846f" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-  info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a59c8d" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/></svg>'
+  success: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#7fb38d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>',
+  error: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#e2806a" stroke-width="1.8" stroke-linecap="round"><path d="M10 6v5M10 14.2h.01"/><rect x="2.8" y="2.8" width="14.4" height="14.4" rx="3"/></svg>',
+  info: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#b5ab99" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="6.8"/><path d="M10 9.2v4M10 6.5h.01"/></svg>'
 };
 
-// Toasts are plain text; an optional action renders as a button (e.g. Retry).
 function showToast(message, type = 'info', action = null) {
   while (toastContainer.children.length >= 3) toastContainer.firstElementChild.remove();
   const toast = document.createElement('div');
@@ -185,7 +183,7 @@ function showToast(message, type = 'info', action = null) {
   return dismiss;
 }
 
-// Animated underline that slides between the active items of a nav or tab bar.
+// Animated ink rule that slides beneath active navigation & sub-tab items
 function moveInk(bar) {
   if (!bar) return;
   const ink = bar.querySelector('.nav-ink');
@@ -199,14 +197,12 @@ function refreshInks() { $$('.mast-nav, .tabs-bar').forEach(moveInk); }
 window.addEventListener('resize', refreshInks);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshInks);
 
-// Run a DOM update inside a view transition when the browser supports it.
 function withTransition(update) {
   if (REDUCED_MOTION || !document.startViewTransition || document.hidden) { update(); return; }
   document.startViewTransition(update);
 }
 
-// NAVIGATION - hash routes so Back/Forward and deep links work (#/history, #/settings, #/about)
-
+// NAVIGATION
 const ROUTES = { check: 'analyzer', history: 'history', settings: 'settings', about: 'info', sources: 'sources' };
 const VIEW_TO_ROUTE = { analyzer: 'check', history: 'history', settings: 'settings', info: 'about', sources: 'sources' };
 let currentView = 'analyzer';
@@ -237,7 +233,7 @@ function applyView(viewName) {
   else if (target === 'analyzer' && currentView === 'sources') activateSubtab('analyzer-tabs', 'subtab', 'verify');
   currentView = viewName;
   refreshInks();
-  const titles = { analyzer: 'Check', sources: 'Sources', history: 'History', settings: 'Settings', info: 'About' };
+  const titles = { analyzer: 'Check', sources: 'Reference Index', history: 'Archive', settings: 'Settings', info: 'Colophon' };
   document.title = `${titles[viewName] || 'Check'} \u00b7 Hallucination Hunter`;
 }
 
@@ -271,19 +267,22 @@ $$('.sidebar-link, .mobile-nav-link').forEach(link => {
   });
 });
 
-// Kept for anything still calling it from markup.
+// Masthead live sync pill jumps straight to Storage telemetry
+$('#mast-db-pill')?.addEventListener('click', () => {
+  switchView('settings');
+  activateSubtab('settings-tabs', 'settab', 'database');
+  checkDbStatus();
+});
+
 function updateMobileNav() {}
 
-// ANALYZER SUB-TABS (Check text / How it works / Sources)
-
+// ANALYZER & SETTINGS SUB-TABS
 $('#analyzer-tabs').addEventListener('click', e => {
   const btn = e.target.closest('[data-subtab]');
   if (!btn) return;
   withTransition(() => activateSubtab('analyzer-tabs', 'subtab', btn.dataset.subtab));
   if (btn.dataset.subtab === 'sources') loadSources();
 });
-
-// SETTINGS SUB-TABS (General / Storage)
 
 $('#settings-tabs').addEventListener('click', e => {
   const btn = e.target.closest('[data-settab]');
@@ -292,15 +291,35 @@ $('#settings-tabs').addEventListener('click', e => {
   if (btn.dataset.settab === 'database') checkDbStatus();
 });
 
-// INPUT HANDLERS
-
+// INPUT HANDLERS & SPECIMEN CHIPS
 const MAX_CHARS = 20000;
+const EXAMPLES = [
+  `The Great Wall of China is the only man-made structure visible from space with the naked eye. Construction began during the Qin Dynasty around 221 BC under Emperor Qin Shi Huang. The wall stretches approximately 13,171 miles and took over 2,000 years to complete. It was primarily built to protect against Mongolian invasions. An estimated 400,000 workers died during its construction. The wall is made entirely of stone and brick throughout its entire length.`,
+  `Python was created by Guido van Rossum and first released in 1991. It is the fastest programming language available today. Python uses indentation for code blocks instead of curly braces. The language is named after the British comedy group Monty Python. Python 2 and Python 3 are fully backward compatible. It is the most popular language according to the TIOBE Index 2024.`,
+  `The Eiffel Tower was built in 1889 for the World's Fair in Paris. It was designed by Gustave Eiffel and stands 1,063 feet tall including its antenna. The tower was originally intended to be temporary and was planned for demolition after 20 years. It weighs approximately 10,100 tons. The Eiffel Tower is the tallest structure in Europe. It receives about 7 million visitors per year.`
+];
+
 let draftTimer = null;
+function syncSpecimenActive(text) {
+  const trimmed = (text || '').trim();
+  $$('.specimen-chip').forEach(chip => {
+    const idx = parseInt(chip.dataset.sample || '-1', 10);
+    chip.classList.toggle('active', EXAMPLES[idx] === trimmed);
+  });
+}
+
 function updateCharCount() {
-  const n = input.value.length;
+  const val = input.value;
+  const n = val.length;
   charCount.textContent = n.toLocaleString();
   charCount.parentElement.classList.toggle('over', n > MAX_CHARS);
+  if (wordCount) {
+    const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+    wordCount.textContent = words.toLocaleString();
+  }
+  syncSpecimenActive(val);
 }
+
 input.addEventListener('input', () => {
   updateCharCount();
   clearTimeout(draftTimer);
@@ -333,7 +352,7 @@ $('#btn-paste')?.addEventListener('click', async () => {
     setInputText(text.trim());
     input.focus();
   } catch {
-    showToast('Paste with Ctrl+V. The browser blocked clipboard access.', 'info');
+    showToast('Paste with Ctrl+V. Browser clipboard read was blocked.', 'info');
     input.focus();
   }
 });
@@ -344,12 +363,6 @@ function hideResults() {
   results.classList.add('hidden');
 }
 
-const EXAMPLES = [
-  `The Great Wall of China is the only man-made structure visible from space with the naked eye. Construction began during the Qin Dynasty around 221 BC under Emperor Qin Shi Huang. The wall stretches approximately 13,171 miles and took over 2,000 years to complete. It was primarily built to protect against Mongolian invasions. An estimated 400,000 workers died during its construction. The wall is made entirely of stone and brick throughout its entire length.`,
-  `Python was created by Guido van Rossum and first released in 1991. It is the fastest programming language available today. Python uses indentation for code blocks instead of curly braces. The language is named after the British comedy group Monty Python. Python 2 and Python 3 are fully backward compatible. It is the most popular language according to the TIOBE Index 2024.`,
-  `The Eiffel Tower was built in 1889 for the World's Fair in Paris. It was designed by Gustave Eiffel and stands 1,063 feet tall including its antenna. The tower was originally intended to be temporary and was planned for demolition after 20 years. It weighs approximately 10,100 tons. The Eiffel Tower is the tallest structure in Europe. It receives about 7 million visitors per year.`
-];
-
 let exampleIdx = 0;
 btnExample.addEventListener('click', () => {
   setInputText(EXAMPLES[exampleIdx % EXAMPLES.length]);
@@ -357,10 +370,21 @@ btnExample.addEventListener('click', () => {
   input.focus();
 });
 
+$$('.specimen-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const idx = parseInt(chip.dataset.sample || '0', 10);
+    if (EXAMPLES[idx]) {
+      exampleIdx = idx + 1;
+      setInputText(EXAMPLES[idx]);
+      input.focus();
+    }
+  });
+});
+
 function validateInput(text) {
-  if (!text) return 'Paste some text first.';
-  if (text.length < 30) return 'That is a bit short. Give it at least a sentence or two.';
-  if (text.length > MAX_CHARS) return `That is ${text.length.toLocaleString()} characters. The limit is ${MAX_CHARS.toLocaleString()}.`;
+  if (!text) return 'Paste a manuscript passage first.';
+  if (text.length < 30) return 'Passage is too brief. Supply at least one complete factual sentence.';
+  if (text.length > MAX_CHARS) return `Passage is ${text.length.toLocaleString()} characters; limit is ${MAX_CHARS.toLocaleString()}.`;
   return null;
 }
 
@@ -383,7 +407,7 @@ $$('.ftab').forEach(btn => {
   });
 });
 
-// Tooltip follows the pointer; keyboard focus positions it under the passage instead.
+// Floating proofreader loupe tooltip
 function positionTip(x, y) {
   const w = tip.offsetWidth || 340;
   const h = tip.offsetHeight || 120;
@@ -395,10 +419,6 @@ document.addEventListener('mousemove', e => {
 });
 
 // GROQ API
-
-// Where the serverless proxy lives. On the Vercel site it is same-origin; the
-// Android shell (https://localhost), local dev servers and file:// previews
-// all talk to the hosted proxy so no API key ever ships in the client.
 const PROD_ORIGIN = 'https://hallucination-hunter-five.vercel.app';
 const IS_VERCEL = /\.vercel\.app$/.test(location.hostname);
 const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
@@ -417,22 +437,21 @@ class CheckError extends Error {
 
 function friendlyError(status, payload) {
   const msg = (payload && (payload.error || payload.message)) || '';
-  if (status === 429) return 'Too many checks in a short time. Wait a few seconds and try again.';
-  if (status === 413) return 'That text is too long to check in one go.';
-  if (status === 400 && /json/i.test(msg)) return 'The checker returned something unreadable. Trying again usually works.';
+  if (status === 429) return 'Rate limit reached. Pause a few seconds and run again.';
+  if (status === 413) return 'That passage is too long to check in one pass.';
+  if (status === 400 && /json/i.test(msg)) return 'The verifier returned malformed data. Retrying usually resolves it.';
   if (status === 400) return msg || 'The request was rejected.';
-  if (status >= 500) return 'The checking service is having trouble right now. Try again in a minute.';
+  if (status >= 500) return 'The verification service is temporarily unavailable.';
   return msg || `Request failed (${status}).`;
 }
 
-// Pull the first JSON object/array out of a model reply, tolerating code fences.
 function parseModelJson(content) {
   if (content && typeof content === 'object') return content;
   const text = String(content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   try { return JSON.parse(text); } catch {}
   const m = text.match(/[\[{][\s\S]*[\]}]/);
   if (m) { try { return JSON.parse(m[0]); } catch {} }
-  throw new CheckError('The checker returned something unreadable. Trying again usually works.', { retryable: true });
+  throw new CheckError('The verifier returned unreadable output. Try again.', { retryable: true });
 }
 
 async function callGroq(messages, { temperature = 0.1, maxTokens = 4096, effort = 'low', signal } = {}) {
@@ -454,7 +473,7 @@ async function callGroq(messages, { temperature = 0.1, maxTokens = 4096, effort 
       payload = await res.json().catch(() => null);
     } catch (err) {
       if (signal && signal.aborted) throw new CheckError('Check cancelled.', { cancelled: true });
-      const msg = navigator.onLine === false ? 'You are offline. Reconnect and try again.' : 'Could not reach the checking service.';
+      const msg = navigator.onLine === false ? 'You are offline. Reconnect and try again.' : 'Could not reach the verification service.';
       if (attempt < 1) { await delay(1200); continue; }
       throw new CheckError(msg, { retryable: true });
     } finally {
@@ -478,7 +497,6 @@ async function callGroq(messages, { temperature = 0.1, maxTokens = 4096, effort 
   }
 }
 
-// Step 1: Extract individual factual claims from the text
 async function extractClaimsFromLLM(text, signal) {
   const result = await callGroq([
     {
@@ -532,7 +550,6 @@ For each claim provide:
 Respond in JSON:
 { "results": [ { "id": 1, "status": "verified", "confidence": 85, "explanation": "...", "correction": null, "source": "...", "sourceUrl": "https://...", "category": "History" } ] }`;
 
-// Step 2: Verify claims in batches so long answers stay within the output budget
 async function verifyClaimsWithLLM(claims, signal, onBatch) {
   if (claims.length === 0) return [];
   const out = [];
@@ -544,7 +561,6 @@ async function verifyClaimsWithLLM(claims, signal, onBatch) {
       { role: 'user', content: `Fact-check each of these claims. Provide the real correct information for any false claims:\n\n${claimList}` }
     ], { maxTokens: 8192, effort: 'medium', signal });
     const rows = Array.isArray(result) ? result : (result.results || result.claims || []);
-    // Match by id, falling back to position when the model renumbers.
     batch.forEach((c, j) => {
       const hit = rows.find(r => r && String(r.id) === String(c.id)) || rows[j] || {};
       out.push({ ...hit, id: c.id });
@@ -564,7 +580,7 @@ function normalizeStatus(s) {
 function normalizeConfidence(n) {
   let v = Number(n);
   if (!isFinite(v)) return 40;
-  if (v > 0 && v <= 1) v *= 100; // some replies use 0-1
+  if (v > 0 && v <= 1) v *= 100;
   return Math.round(Math.max(0, Math.min(100, v)));
 }
 
@@ -577,10 +593,19 @@ function safeUrl(u) {
   } catch { return null; }
 }
 
+function domainOf(u) {
+  try {
+    const url = new URL(String(u || '').trim());
+    const host = url.hostname.replace(/^www\./i, '');
+    if (/^google\./i.test(host) && url.pathname.startsWith('/search')) return '';
+    return host;
+  } catch { return ''; }
+}
+
 function finalizeClaims(rawClaims, verifyResults, idOffset = 0) {
   return rawClaims.map((c, i) => {
     const v = verifyResults.find(r => r.id === c.id) || {};
-    const source = (v.source && !/^(unknown|no source|none|n\/a)/i.test(v.source)) ? String(v.source) : 'Search the web';
+    const source = (v.source && !/^(unknown|no source|none|n\/a)/i.test(v.source)) ? String(v.source) : 'Web search';
     const url = safeUrl(v.sourceUrl) || ('https://www.google.com/search?q=' + encodeURIComponent(c.text.slice(0, 120)));
     return {
       id: idOffset + i + 1,
@@ -588,7 +613,7 @@ function finalizeClaims(rawClaims, verifyResults, idOffset = 0) {
       originalText: c.originalSentence || c.text,
       status: normalizeStatus(v.status),
       confidence: normalizeConfidence(v.confidence),
-      explanation: String(v.explanation || 'No explanation came back for this claim.'),
+      explanation: String(v.explanation || 'No explanation returned for this claim.'),
       correction: v.correction && normalizeStatus(v.status) === 'false' ? String(v.correction) : null,
       source,
       sourceUrl: url,
@@ -597,12 +622,9 @@ function finalizeClaims(rawClaims, verifyResults, idOffset = 0) {
   });
 }
 
-// Kept for older callers; finalizeClaims already resolves URLs.
 async function findRealSources(claims) { return claims; }
 
-// PROGRESS - the bar eases toward each step's ceiling while the network call runs,
-// so it never sits frozen and never claims to be finished early.
-
+// PROGRESS
 const progress = (() => {
   let shown = 0, floor = 0, ceil = 0, raf = 0, last = 0;
   const thumb = () => $('#progress-thumb');
@@ -632,7 +654,11 @@ function setStep(stepId, state) {
   if (!step) return;
   step.classList.toggle('active', state === 'active');
   step.classList.toggle('done', state === 'done');
-  step.querySelector('.ps-status').innerHTML = state === 'active' ? '<div class="loader"></div>' : '';
+  step.querySelector('.ps-status').innerHTML = state === 'active'
+    ? '<div class="loader"></div>'
+    : state === 'done'
+      ? STEP_CHECK_ICON
+      : '';
 }
 async function animateStepStart(stepId) { setStep(stepId, 'active'); }
 async function animateStepDone(stepId, _from, to) { setStep(stepId, 'done'); progress.jump(to); }
@@ -643,11 +669,10 @@ function setStepNote(stepId, text) {
 }
 
 // ANALYSIS PIPELINE
-
 const STEP_COPY = {
-  'ps-extract': 'Splitting the text into single statements that can be checked',
-  'ps-search': 'Checking every claim against well-established facts',
-  'ps-verify': 'Scoring each verdict and attaching a source to read'
+  'ps-extract': 'Splitting the manuscript into discrete statements that can be tested independently',
+  'ps-search': 'Matching each assertion against established primary literature',
+  'ps-verify': 'Assigning confidence weights and attaching source links'
 };
 
 function setBusy(busy) {
@@ -667,7 +692,7 @@ async function runAnalysis(text) {
   if (activeController) return;
   const parts = splitBatch(text);
   if ($('#batch-mode')?.checked && parts.length < 2) {
-    showToast('Batch mode needs at least two texts separated by a line with ---', 'error');
+    showToast('Batch mode requires two or more passages separated by --- on its own line', 'error');
     return;
   }
 
@@ -684,27 +709,25 @@ async function runAnalysis(text) {
   requestAnimationFrame(() => processing.scrollIntoView({ behavior: REDUCED_MOTION ? 'auto' : 'smooth', block: 'nearest' }));
 
   try {
-    // Step 1: extract (0-30%)
     setStep('ps-extract', 'active');
     progress.span(0, 30);
     const extracted = [];
     for (let i = 0; i < parts.length; i++) {
-      if (parts.length > 1) setStepNote('ps-extract', `Text ${i + 1} of ${parts.length}`);
+      if (parts.length > 1) setStepNote('ps-extract', `Passage ${i + 1} of ${parts.length}`);
       const claims = await extractClaimsFromLLM(parts[i], signal);
       extracted.push(claims);
     }
     const totalClaims = extracted.reduce((n, c) => n + c.length, 0);
     setStep('ps-extract', 'done');
-    setStepNote('ps-extract', `${totalClaims} claim${totalClaims === 1 ? '' : 's'} found`);
+    setStepNote('ps-extract', `${totalClaims} factual assertion${totalClaims === 1 ? '' : 's'} isolated`);
     progress.jump(30);
 
     if (totalClaims === 0) {
-      showToast('No checkable facts in this text. Try something with names, dates or numbers.', 'info');
+      showToast('No verifiable factual assertions found. Try prose with concrete dates, figures, or names.', 'info');
       processing.classList.add('hidden');
       return;
     }
 
-    // Step 2: verify (30-92%)
     setStep('ps-search', 'active');
     progress.span(30, 92);
     let all = [];
@@ -712,16 +735,15 @@ async function runAnalysis(text) {
     for (let i = 0; i < parts.length; i++) {
       if (!extracted[i].length) continue;
       const verdicts = await verifyClaimsWithLLM(extracted[i], signal, n => {
-        setStepNote('ps-search', `${Math.min(done + n, totalClaims)} of ${totalClaims} checked`);
+        setStepNote('ps-search', `${Math.min(done + n, totalClaims)} of ${totalClaims} claims cross-examined`);
       });
       all = all.concat(finalizeClaims(extracted[i], verdicts, all.length));
       done += extracted[i].length;
     }
     setStep('ps-search', 'done');
-    setStepNote('ps-search', `${totalClaims} of ${totalClaims} checked`);
+    setStepNote('ps-search', `${totalClaims} of ${totalClaims} claims cross-examined`);
     progress.jump(92);
 
-    // Step 3: score (92-100%)
     setStep('ps-verify', 'active');
     progress.span(92, 100);
     currentClaims = all;
@@ -729,27 +751,26 @@ async function runAnalysis(text) {
     await delay(REDUCED_MOTION ? 0 : 220);
     setStep('ps-verify', 'done');
     progress.jump(100);
-    await delay(REDUCED_MOTION ? 0 : 260);
+    await delay(REDUCED_MOTION ? 0 : 240);
 
     processing.classList.add('hidden');
     displayResults(currentText, all);
     updateAccuracyTab(all);
 
-    // Saving is best effort: a storage outage must not throw away a finished check.
     saveAnalysis(currentText, all)
       .then(() => { loadDashboardStats(); loadSources(); })
       .catch(err => {
         console.warn('Save failed:', err);
-        showToast('Checked, but it could not be saved to history.', 'info');
+        showToast('Dossier ready, though cloud archive sync did not complete.', 'info');
       });
   } catch (err) {
     progress.stop();
     processing.classList.add('hidden');
     if (err.cancelled) {
-      showToast('Check cancelled', 'info');
+      showToast('Check aborted', 'info');
     } else {
       console.error('Analysis error:', err);
-      showToast(err.message || 'The check failed.', 'error', { label: 'Try again', run: () => runAnalysis(text) });
+      showToast(err.message || 'Verification failed.', 'error', { label: 'Retry', run: () => runAnalysis(text) });
     }
   } finally {
     progress.stop();
@@ -757,8 +778,8 @@ async function runAnalysis(text) {
     setBusy(false);
   }
 }
-// DISPLAY RESULTS
 
+// DISPLAY RESULTS
 function scoreOf(claims) {
   const total = claims.length;
   const v = claims.filter(c => c.status === 'verified').length;
@@ -775,7 +796,6 @@ function displayResults(originalText, claims) {
 
   results.classList.remove('hidden');
   results.classList.remove('is-in');
-  // force a reflow so the entrance runs again on a second check
   void results.offsetWidth;
   results.classList.add('is-in');
 
@@ -785,12 +805,23 @@ function displayResults(originalText, claims) {
   animateNum('s-false', fCount);
   animateNum('score-val', trustScore);
 
-  const circ = 2 * Math.PI * 18;
+  const bVer = $('#breakdown-verified');
+  const bUnv = $('#breakdown-unverifiable');
+  const bFal = $('#breakdown-false');
+  if (bVer && bUnv && bFal) {
+    bVer.style.width = total ? `${(vCount / total) * 100}%` : '0%';
+    bUnv.style.width = total ? `${(uCount / total) * 100}%` : '0%';
+    bFal.style.width = total ? `${(fCount / total) * 100}%` : '0%';
+  }
+
+  const circ = 2 * Math.PI * 19.5;
   const arc = $('#score-arc');
-  arc.style.strokeDashoffset = circ;
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    arc.style.strokeDashoffset = circ - (trustScore / 100) * circ;
-  }));
+  if (arc) {
+    arc.style.strokeDashoffset = circ;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      arc.style.strokeDashoffset = circ - (trustScore / 100) * circ;
+    }));
+  }
   const donut = $('#score-donut');
   if (donut) donut.dataset.band = bandOf(trustScore);
   const verdict = $('#score-verdict');
@@ -828,9 +859,8 @@ function animateNum(id, target) {
   el._raf = requestAnimationFrame(tick);
 }
 
-// Find each claim's sentence in the raw text and build the marked-up HTML from
-// ranges, so one highlight can never land inside another's markup.
-function buildAnnotated(originalText, claims) {
+// Compute non-overlapping highlight spans and return marked-up HTML + matched count
+function renderAnnotatedHtml(originalText, claims) {
   const lower = originalText.toLowerCase();
   const ranges = [];
   [...claims]
@@ -851,48 +881,59 @@ function buildAnnotated(originalText, claims) {
 
   let html = '', pos = 0;
   ranges.forEach(r => {
+    const num = String(r.c.id || 1).padStart(2, '0');
     html += escapeHtml(originalText.slice(pos, r.start));
-    html += `<mark class="claim-hl ${r.c.status}" tabindex="0" data-id="${r.c.id}">${escapeHtml(originalText.slice(r.start, r.end))}</mark>`;
+    html += `<mark class="claim-hl ${r.c.status}" tabindex="0" data-id="${r.c.id}">${escapeHtml(originalText.slice(r.start, r.end))}<sup class="claim-sup" aria-hidden="true">${num}</sup></mark>`;
     pos = r.end;
   });
   html += escapeHtml(originalText.slice(pos));
-  annotatedText.innerHTML = html;
+  return { html, marked: ranges.length };
+}
 
+function wireAnnotatedContainer(container, claims, onJump) {
   const byId = new Map(claims.map(c => [String(c.id), c]));
-  annotatedText.querySelectorAll('.claim-hl').forEach(el => {
+  container.querySelectorAll('.claim-hl').forEach(el => {
     const c = byId.get(el.dataset.id);
+    if (!c) return;
     el.setAttribute('aria-label', `${VERDICT_LABELS[c.status]}: ${c.text}`);
     el.addEventListener('mouseenter', e => showTip(c, e.clientX, e.clientY));
     el.addEventListener('mouseleave', hideTip);
     el.addEventListener('focus', () => { const r = el.getBoundingClientRect(); showTip(c, r.left, r.bottom); });
     el.addEventListener('blur', hideTip);
-    el.addEventListener('click', () => focusCard(c.id));
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') focusCard(c.id); });
+    if (onJump) {
+      el.addEventListener('click', () => onJump(c.id));
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') onJump(c.id); });
+    }
   });
-  const marked = ranges.length;
+}
+
+function buildAnnotated(originalText, claims) {
+  const { html, marked } = renderAnnotatedHtml(originalText, claims);
+  annotatedText.innerHTML = html;
+  wireAnnotatedContainer(annotatedText, claims, id => focusCard(id));
   const note = $('#annotated-note');
   if (note) note.textContent = marked < claims.length
-    ? `${marked} of ${claims.length} claims could be pinned to the text. Click one to jump to its card.`
-    : 'Hover or tab to a marked passage to see what we found. Click to jump to its card.';
+    ? `${marked} of ${claims.length} claims pinned directly in the manuscript. Click any numbered mark to jump to its card.`
+    : 'Hover or focus any underlined passage to inspect the finding. Click a mark to jump to its dossier card.';
 }
 
 function showTip(c, x, y) {
   const colors = { verified: 'var(--green)', unverifiable: 'var(--amber)', false: 'var(--red)' };
   tip.querySelector('.tip-status').textContent = VERDICT_LABELS[c.status];
   tip.querySelector('.tip-status').style.color = colors[c.status];
-  tip.querySelector('.tip-conf').textContent = c.confidence + '% confidence';
-  tip.querySelector('.tip-body').textContent = c.correction ? `Actually: ${c.correction}` : c.explanation;
-  tip.querySelector('.tip-source').textContent = 'Source: ' + c.source;
+  tip.querySelector('.tip-conf').textContent = c.confidence + '% certainty';
+  tip.querySelector('.tip-body').textContent = c.correction ? `Correction: ${c.correction}` : c.explanation;
+  tip.querySelector('.tip-source').textContent = 'Cited: ' + c.source;
   tip.classList.remove('hidden');
   positionTip(x, y);
   tip.classList.add('visible');
 }
 function hideTip() { tip.classList.remove('visible'); }
 
-function focusCard(id) {
-  const card = claimsGrid.querySelector(`.claim-card[data-id="${id}"]`);
+function focusCard(id, rootGrid = claimsGrid) {
+  const card = rootGrid.querySelector(`.claim-card[data-id="${id}"]`);
   if (!card) return;
-  if (card.style.display === 'none') { $('.ftab[data-filter="all"]').click(); }
+  if (rootGrid === claimsGrid && card.style.display === 'none') { $('.ftab[data-filter="all"]')?.click(); }
   card.scrollIntoView({ behavior: REDUCED_MOTION ? 'auto' : 'smooth', block: 'center' });
   card.classList.remove('flash');
   void card.offsetWidth;
@@ -901,54 +942,56 @@ function focusCard(id) {
 }
 
 function claimCardHTML(c, threshold) {
+  const num = String(c.id || 1).padStart(2, '0');
   const below = c.confidence < threshold;
   const confColor = c.confidence >= 80 ? 'var(--green)' : c.confidence >= 60 ? 'var(--amber)' : 'var(--red)';
   const href = safeUrl(c.sourceUrl);
+  const host = domainOf(href);
   const srcLink = href
     ? `<a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.source)}</a>`
     : `<span>${escapeHtml(c.source || 'No source')}</span>`;
+
   return `
     <div class="claim-card-top">
-      <div class="claim-icon">${MARKS[c.status]}</div>
-      <div class="claim-card-info">
-        <div class="claim-card-name">${VERDICT_LABELS[c.status]}</div>
-        <div class="claim-card-sub">${c.confidence}% confidence</div>
-      </div>
-      <button type="button" class="icon-btn claim-copy" title="Copy this claim" aria-label="Copy this claim">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="9.5" height="9.5" rx="1.5"/><path d="M13 7V5a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 0 4 5v6a1.5 1.5 0 0 0 1.5 1.5H7"/></svg>
+      <span class="claim-idx">#${num}</span>
+      <span class="verdict-stamp ${c.status}">${MARKS[c.status]}<span>${VERDICT_LABELS[c.status]}</span></span>
+      <span class="claim-tag">${escapeHtml(c.category || 'General')}</span>
+      <button type="button" class="icon-btn claim-copy" title="Copy claim &amp; verdict" aria-label="Copy this claim">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="9.5" height="9.5" rx="1.4"/><path d="M13 7V5a1.4 1.4 0 0 0-1.4-1.4H5.4A1.4 1.4 0 0 0 4 5v6.2a1.4 1.4 0 0 0 1.4 1.4H7"/></svg>
       </button>
     </div>
+    <p class="claim-desc">${escapeHtml(c.text)}</p>
+    ${c.correction ? `<div class="claim-correction"><span class="corr-kicker">Correction</span><p>${escapeHtml(c.correction)}</p></div>` : ''}
     <div class="threshold-badge"${below ? '' : ' hidden'}>Below ${threshold}% threshold</div>
     <div class="conf-bar-wrap">
+      <span class="conf-caption">Certainty</span>
       <div class="conf-bar-track">
         <div class="conf-bar-fill" style="--w:${c.confidence / 100};background:${confColor}"></div>
         <div class="conf-bar-threshold" style="left:${threshold}%" title="Threshold: ${threshold}%"></div>
       </div>
       <span class="conf-bar-label" style="color:${confColor}">${c.confidence}%</span>
     </div>
-    <p class="claim-desc">${escapeHtml(c.text)}</p>
-    ${c.correction ? `<p class="claim-correction"><strong>Actually:</strong> ${escapeHtml(c.correction)}</p>` : ''}
-    <div class="claim-source-direct">${LINK_ICON}${srcLink}</div>
-    <div class="claim-tags"><span class="claim-tag">${escapeHtml(c.category || 'General')}</span></div>
     <div class="claim-card-bottom">
-      <button type="button" class="view-detail-btn" aria-expanded="false">View details</button>
+      <div class="claim-foot-row">
+        <div class="claim-source-direct">${LINK_ICON}${srcLink}${host ? `<span class="src-domain">${escapeHtml(host)}</span>` : ''}</div>
+        <button type="button" class="view-detail-btn" aria-expanded="false">Reasoning</button>
+      </div>
       <div class="claim-detail" hidden>
         <div class="claim-detail-inner">
           <div class="claim-explain">${escapeHtml(c.explanation || '')}</div>
-          <div class="claim-src">${LINK_ICON}${srcLink}</div>
+          <div class="claim-src">${LINK_ICON}${srcLink}${host ? `<span class="src-domain">${escapeHtml(host)}</span>` : ''}</div>
         </div>
       </div>
     </div>`;
 }
 
-// Details expand by animating grid rows 0fr -> 1fr; no fixed heights to guess.
 function wireClaimCard(card, c) {
   const btn = card.querySelector('.view-detail-btn');
   const detail = card.querySelector('.claim-detail');
   btn.addEventListener('click', () => {
     const open = btn.getAttribute('aria-expanded') !== 'true';
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    btn.textContent = open ? 'Hide details' : 'View details';
+    btn.textContent = open ? 'Close note' : 'Reasoning';
     if (open) {
       detail.hidden = false;
       requestAnimationFrame(() => detail.classList.add('open'));
@@ -959,7 +1002,7 @@ function wireClaimCard(card, c) {
   });
   const copy = card.querySelector('.claim-copy');
   if (copy) copy.addEventListener('click', async () => {
-    const text = `${VERDICT_LABELS[c.status]} (${c.confidence}%): ${c.text}\n${c.correction ? 'Actually: ' + c.correction + '\n' : ''}${c.explanation || ''}\nSource: ${c.source}${safeUrl(c.sourceUrl) ? ' ' + c.sourceUrl : ''}`;
+    const text = `${VERDICT_LABELS[c.status]} (${c.confidence}%): ${c.text}\n${c.correction ? 'Correction: ' + c.correction + '\n' : ''}${c.explanation || ''}\nSource: ${c.source}${safeUrl(c.sourceUrl) ? ' ' + c.sourceUrl : ''}`;
     if (await copyText(text)) { copy.classList.add('done'); setTimeout(() => copy.classList.remove('done'), 1200); }
   });
 }
@@ -1002,7 +1045,7 @@ function updateEmptyFilter(filter) {
     empty.className = 'claims-empty';
     claimsGrid.after(empty);
   }
-  empty.textContent = `No ${VERDICT_LABELS[filter].toLowerCase()} claims in this check.`;
+  empty.textContent = `No ${VERDICT_LABELS[filter].toLowerCase()} claims in this dossier.`;
 }
 
 async function copyText(text) {
@@ -1020,12 +1063,12 @@ async function copyText(text) {
     let ok = false;
     try { ok = document.execCommand('copy'); } catch {}
     ta.remove();
-    if (!ok) showToast('Copy failed. Your browser blocked clipboard access.', 'error');
+    if (!ok) showToast('Copy failed. Browser blocked clipboard access.', 'error');
     return ok;
   }
 }
-// SUPABASE - Save Analysis
 
+// SUPABASE - Save Analysis
 async function saveAnalysis(text, claims) {
   if (db.unavailable) throw new Error('Storage unavailable');
   const vCount = claims.filter(c => c.status === 'verified').length;
@@ -1048,7 +1091,6 @@ async function saveAnalysis(text, claims) {
     claim_text: c.text,
     status: c.status,
     confidence: c.confidence,
-    // there is no correction column, so keep it with the explanation
     explanation: c.correction ? `${c.explanation}\n\nActually: ${c.correction}` : c.explanation,
     source_name: c.source,
     source_url: c.sourceUrl,
@@ -1061,9 +1103,8 @@ async function saveAnalysis(text, claims) {
 }
 
 // HISTORY VIEW
-
-let historyCache = null;          // rows from the last load
-const pendingDeletes = new Map(); // id -> timer, for undo
+let historyCache = null;
+const pendingDeletes = new Map();
 
 function skeletonRows(n) {
   return Array.from({ length: n }, () => '<div class="history-row skeleton" aria-hidden="true"><div class="sk sk-score"></div><div class="history-info"><div class="sk sk-line"></div><div class="sk sk-line short"></div></div></div>').join('');
@@ -1073,9 +1114,9 @@ function relativeDate(iso) {
   const d = new Date(iso);
   const diff = (Date.now() - d.getTime()) / 1000;
   if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} d ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -1089,7 +1130,7 @@ async function loadHistory() {
   if (!historyCache) list.innerHTML = skeletonRows(4);
   const { data, error } = await db.from('analyses').select('*').order('created_at', { ascending: false }).limit(100);
   if (error) {
-    list.innerHTML = `<div class="empty-state"><h3>History is unavailable</h3><p>${db.unavailable ? 'Storage is blocked in this browser. Checks still work, they just are not saved.' : 'Could not reach storage. Check your connection and try again.'}</p></div>`;
+    list.innerHTML = `<div class="empty-state"><h3>Archive unavailable</h3><p>${db.unavailable ? 'Storage is blocked in this browser. Checks still run locally.' : 'Could not reach Supabase storage. Check your connection and retry.'}</p></div>`;
     return;
   }
   historyCache = (data || []).filter(a => !pendingDeletes.has(a.id));
@@ -1101,17 +1142,17 @@ function renderHistory() {
   const q = ($('#history-filter')?.value || '').trim().toLowerCase();
   const rows = (historyCache || []).filter(a => !q || (a.input_text || '').toLowerCase().includes(q));
   const count = $('#history-count');
-  if (count) count.textContent = historyCache && historyCache.length ? `${historyCache.length} saved` : '';
+  if (count) count.textContent = historyCache && historyCache.length ? `\u00b7 ${historyCache.length} stored` : '';
   $('#btn-clear-history').disabled = !(historyCache && historyCache.length);
   $('#btn-export-history').disabled = !(historyCache && historyCache.length);
 
   if (!historyCache || historyCache.length === 0) {
-    list.innerHTML = `<div class="empty-state"><h3>No checks yet</h3><p>Run one from the Check tab and it will be listed here.</p><button type="button" class="btn-text" data-goto="analyzer">Start a check</button></div>`;
+    list.innerHTML = `<div class="empty-state"><h3>No archived checks yet</h3><p>Run a manuscript check from the Check tab and it will be logged here.</p><button type="button" class="action-btn" data-goto="analyzer">Open Check Desk</button></div>`;
     list.querySelector('[data-goto]').addEventListener('click', () => switchView('analyzer'));
     return;
   }
   if (rows.length === 0) {
-    list.innerHTML = `<div class="empty-state small-empty"><h3>No matches</h3><p>Nothing in your history mentions "${escapeHtml(q)}".</p></div>`;
+    list.innerHTML = `<div class="empty-state small-empty"><h3>No matching entries</h3><p>Nothing in the archive mentions &ldquo;${escapeHtml(q)}&rdquo;.</p></div>`;
     return;
   }
 
@@ -1119,25 +1160,25 @@ function renderHistory() {
   rows.forEach((a, i) => {
     const band = bandOf(a.trust_score);
     const text = a.input_text || '';
-    const preview = text.length > 140 ? text.slice(0, 140) + '...' : text;
+    const preview = text.length > 150 ? text.slice(0, 150) + '\u2026' : text;
     const row = document.createElement('div');
     row.className = 'history-row';
     row.style.setProperty('--i', Math.min(i, 10));
     row.innerHTML = `
       <button type="button" class="history-open" aria-label="Open this check">
-        <span class="history-score ${band}">${a.trust_score}</span>
+        <span class="history-score ${band}">${a.trust_score}<small>%</small></span>
         <span class="history-info">
           <span class="history-preview">${escapeHtml(preview)}</span>
-          <span class="history-meta"><span title="${escapeAttr(new Date(a.created_at).toLocaleString())}">${relativeDate(a.created_at)}</span><span>${a.total_claims} claims</span></span>
+          <span class="history-meta"><span title="${escapeAttr(new Date(a.created_at).toLocaleString())}">${relativeDate(a.created_at)}</span><span>&middot;</span><span>${a.total_claims} claims</span></span>
         </span>
       </button>
-      <div class="history-stats">
-        <span class="history-stat v" title="Verified">${a.verified_count}</span>
-        <span class="history-stat u" title="Unverifiable">${a.unverifiable_count}</span>
-        <span class="history-stat f" title="Wrong">${a.false_count}</span>
+      <div class="history-stats" aria-label="Verdict counts">
+        <span class="history-stat v" title="Verified">${a.verified_count}V</span>
+        <span class="history-stat u" title="Unverifiable">${a.unverifiable_count}U</span>
+        <span class="history-stat f" title="Contradicted">${a.false_count}C</span>
       </div>
-      <button type="button" class="history-delete" title="Delete" aria-label="Delete this check">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 6h12M8 6V4.5h4V6M5.5 6l.7 10h7.6l.7-10"/></svg>
+      <button type="button" class="history-delete" title="Delete entry" aria-label="Delete this check">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 6h11.6M8 6V4.4c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9V6M5.8 6l.6 9.8c0 .7.6 1.2 1.3 1.2h4.6c.7 0 1.3-.5 1.3-1.2L14.2 6"/></svg>
       </button>`;
     row.querySelector('.history-open').addEventListener('click', () => viewHistoryDetail(a.id));
     row.querySelector('.history-delete').addEventListener('click', () => deleteWithUndo(a, row));
@@ -1160,7 +1201,7 @@ function collapseRow(row) {
 async function commitDelete(id) {
   pendingDeletes.delete(id);
   const { error } = await db.from('analyses').delete().eq('id', id).eq('user_id', userId);
-  if (error) { showToast('Delete failed. It will show up again on reload.', 'error'); return; }
+  if (error) { showToast('Delete could not be synced.', 'error'); return; }
   loadDashboardStats();
 }
 
@@ -1170,7 +1211,7 @@ async function deleteWithUndo(a, row) {
   if (!historyCache.length || !$('#history-list .history-row')) renderHistory();
   const timer = setTimeout(() => commitDelete(a.id), 6000);
   pendingDeletes.set(a.id, timer);
-  showToast('Check deleted', 'info', {
+  showToast('Entry removed', 'info', {
     label: 'Undo',
     run: () => {
       clearTimeout(pendingDeletes.get(a.id));
@@ -1181,7 +1222,6 @@ async function deleteWithUndo(a, row) {
   });
 }
 
-// Finish any pending deletes if the tab is closed mid-undo.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'hidden') return;
   for (const [id, timer] of pendingDeletes) { clearTimeout(timer); commitDelete(id); }
@@ -1199,7 +1239,7 @@ function rowToClaim(c, i) {
     correction: parts[1] || null,
     source: c.source_name || 'No source',
     sourceUrl: c.source_url,
-    category: 'General'
+    category: c.category || 'General'
   };
 }
 
@@ -1212,43 +1252,65 @@ async function viewHistoryDetail(analysisId) {
     db.from('analyses').select('*').eq('id', analysisId).single(),
     db.from('claims').select('*').eq('analysis_id', analysisId).order('created_at', { ascending: true })
   ]);
-  if (!analysis || !rows) { showToast('Could not open that check', 'error'); return; }
+  if (!analysis || !rows) { showToast('Could not open that archived check', 'error'); return; }
 
   const claims = rows.map(rowToClaim);
   const band = bandOf(analysis.trust_score);
   const date = new Date(analysis.created_at).toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const threshold = parseInt($('#s-conf-range')?.value || '75', 10);
+  const { html: annotatedHtml } = renderAnnotatedHtml(analysis.input_text || '', claims);
+  const tot = Math.max(1, analysis.total_claims || claims.length || 1);
 
   withTransition(() => {
     list.classList.add('hidden');
     $('#history-tools')?.classList.add('hidden');
     detail.classList.remove('hidden');
     content.innerHTML = `
-      <div class="section-label section-label-row">
-        <div>
-          <h2>Check from ${escapeHtml(date)}</h2>
-          <p>Trust score <strong class="band-${band}">${analysis.trust_score}%</strong> across ${analysis.total_claims} claims</p>
+      <div class="results-dossier history-dossier">
+        <div class="section-label section-label-row">
+          <div>
+            <span class="section-kicker">Archived Dossier</span>
+            <h2>Filed ${escapeHtml(date)}</h2>
+            <p>Verification Index <strong class="band-${band}">${analysis.trust_score}%</strong> across ${analysis.total_claims} extracted claims.</p>
+          </div>
+          <button type="button" class="action-btn" id="btn-open-in-checker">
+            <span>Open in Check Desk</span>
+          </button>
         </div>
-        <button type="button" class="action-btn" id="btn-open-in-checker">Open in checker</button>
+        <div class="summary-meter-col">
+          <ul class="summary-row">
+            <li class="summary-pill pill-verified"><span class="pill-dot" aria-hidden="true"></span><span class="pill-num">${analysis.verified_count}</span><span class="pill-label">verified</span></li>
+            <li class="summary-pill pill-unverifiable"><span class="pill-dot" aria-hidden="true"></span><span class="pill-num">${analysis.unverifiable_count}</span><span class="pill-label">unverifiable</span></li>
+            <li class="summary-pill pill-false"><span class="pill-dot" aria-hidden="true"></span><span class="pill-num">${analysis.false_count}</span><span class="pill-label">contradicted</span></li>
+          </ul>
+          <div class="breakdown-bar" aria-hidden="true">
+            <span class="bd-seg bd-verified" style="width:${(analysis.verified_count / tot) * 100}%"></span>
+            <span class="bd-seg bd-unverifiable" style="width:${(analysis.unverifiable_count / tot) * 100}%"></span>
+            <span class="bd-seg bd-false" style="width:${(analysis.false_count / tot) * 100}%"></span>
+          </div>
+        </div>
       </div>
-      <ul class="summary-row">
-        <li class="summary-pill pill-verified"><span class="pill-num">${analysis.verified_count}</span><span class="pill-label">verified</span></li>
-        <li class="summary-pill pill-unverifiable"><span class="pill-num">${analysis.unverifiable_count}</span><span class="pill-label">unverifiable</span></li>
-        <li class="summary-pill pill-false"><span class="pill-num">${analysis.false_count}</span><span class="pill-label">wrong</span></li>
-      </ul>
-      <div class="annotated-card">${escapeHtml(analysis.input_text)}</div>
-      <h3>Claim by claim</h3>
+      <div class="annotated-sheet history-sheet">
+        <div class="annotated-margin" aria-hidden="true">PROOF</div>
+        <div class="annotated-card" id="history-annotated">${annotatedHtml}</div>
+      </div>
+      <div class="section-label"><span class="section-kicker">Itemized Findings</span><h3>Claim-by-claim ledger</h3></div>
       <div class="claims-grid" id="history-claims"></div>`;
     const grid = $('#history-claims');
     claims.forEach((c, i) => {
       const card = document.createElement('article');
       card.className = 'claim-card' + (c.confidence < threshold ? ' below-threshold' : '');
+      card.tabIndex = -1;
+      card.dataset.id = c.id;
       card.dataset.status = c.status;
+      card.dataset.confidence = c.confidence;
       card.style.setProperty('--i', Math.min(i, 12));
       card.innerHTML = claimCardHTML(c, threshold);
       wireClaimCard(card, c);
       grid.appendChild(card);
     });
+    const histAnn = $('#history-annotated');
+    if (histAnn) wireAnnotatedContainer(histAnn, claims, id => focusCard(id, grid));
     $('#btn-open-in-checker').addEventListener('click', () => {
       currentClaims = claims;
       currentText = analysis.input_text;
@@ -1271,21 +1333,21 @@ $('#btn-back-history').addEventListener('click', () => {
 
 $('#btn-clear-history').addEventListener('click', async () => {
   if (!historyCache || !historyCache.length) return;
-  if (!(await confirmDialog({ title: 'Delete all history?', body: `This removes ${historyCache.length} saved check${historyCache.length === 1 ? '' : 's'} and every claim in them. It cannot be undone.`, confirm: 'Delete everything', danger: true }))) return;
+  if (!(await confirmDialog({ title: 'Clear saved checks?', body: `This removes your saved checks from this browser's session. It cannot be undone.`, confirm: 'Delete checks', danger: true }))) return;
   const { error } = await db.from('analyses').delete().eq('user_id', userId);
   if (error) { showToast('Could not clear history', 'error'); return; }
-  showToast('History cleared', 'success');
-  historyCache = [];
-  renderHistory();
+  showToast('Saved checks cleared', 'success');
+  historyCache = null;
+  loadHistory();
   loadDashboardStats();
 });
 
 $('#btn-export-history')?.addEventListener('click', async () => {
   const [{ data: analyses }, { data: claims }] = await Promise.all([
     db.from('analyses').select('*').order('created_at', { ascending: false }).limit(100),
-    db.from('claims').select('*').eq('user_id', userId)
+    db.from('claims').select('*').limit(1000)
   ]);
-  if (!analyses) { showToast('Could not export history', 'error'); return; }
+  if (!analyses) { showToast('Could not export archive', 'error'); return; }
   const byAnalysis = {};
   (claims || []).forEach(c => { (byAnalysis[c.analysis_id] = byAnalysis[c.analysis_id] || []).push(c); });
   const payload = {
@@ -1296,20 +1358,19 @@ $('#btn-export-history')?.addEventListener('click', async () => {
       claims: (byAnalysis[a.id] || []).map(c => ({ claim: c.claim_text, status: c.status, confidence: c.confidence, explanation: c.explanation, source: c.source_name, url: c.source_url }))
     }))
   };
-  downloadFile(`hallucination-hunter-history-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json');
+  downloadFile(`hallucination-hunter-archive-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json');
 });
 
 // SOURCES VIEW
-
 async function loadSources() {
   const list = $('#sources-list');
   const { data, error } = await db.from('claims').select('source_name, source_url, status').limit(1000);
   if (error) {
-    list.innerHTML = `<div class="empty-state small-empty"><h3>Unavailable</h3><p>Sources from past checks could not be loaded.</p></div>`;
+    list.innerHTML = `<div class="empty-state small-empty"><h3>Unavailable</h3><p>Citations from archived checks could not be retrieved.</p></div>`;
     return;
   }
   if (!data || data.length === 0) {
-    list.innerHTML = `<div class="empty-state small-empty"><h3>Nothing yet</h3><p>Sources show up here after your first check.</p></div>`;
+    list.innerHTML = `<div class="empty-state small-empty"><h3>No citations logged yet</h3><p>Sources appear here automatically once checks are run.</p></div>`;
     return;
   }
 
@@ -1321,26 +1382,30 @@ async function loadSources() {
     s.count++;
     if (c.status === 'verified') s.v++;
     if (c.status === 'false') s.f++;
-    // prefer a homepage-ish link over a search URL
     if (s.url && /google\.com\/search/.test(s.url) && c.source_url && !/google\.com\/search/.test(c.source_url)) s.url = safeUrl(c.source_url);
   });
 
   const sources = Object.values(sourceMap).sort((a, b) => b.count - a.count);
   const max = sources[0].count;
-  list.innerHTML = sources.slice(0, 40).map(s => `
+  list.innerHTML = sources.slice(0, 40).map((s, idx) => {
+    const host = domainOf(s.url);
+    return `
     <div class="source-row">
-      <div class="source-icon">${LINK_ICON}</div>
+      <div class="source-rank">${String(idx + 1).padStart(2, '0')}</div>
       <div class="source-info">
-        <div class="source-name">${s.url ? `<a href="${escapeAttr(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.name)}</a>` : escapeHtml(s.name)}</div>
-        <div class="source-meta">${s.v} verified, ${s.f} contradicted</div>
+        <div class="source-name-row">
+          <span class="source-name">${s.url ? `<a href="${escapeAttr(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.name)}</a>` : escapeHtml(s.name)}</span>
+          ${host ? `<span class="src-domain">${escapeHtml(host)}</span>` : ''}
+        </div>
+        <div class="source-meta">${s.v} verified &middot; ${s.f} contradicted</div>
       </div>
       <div class="source-bar" aria-hidden="true"><span style="--w:${s.count / max}"></span></div>
-      <div class="source-count">${s.count} ${s.count === 1 ? 'use' : 'uses'}</div>
-    </div>`).join('');
+      <div class="source-count">${s.count} ${s.count === 1 ? 'citation' : 'citations'}</div>
+    </div>`;
+  }).join('');
 }
 
-// SETTINGS - cached in localStorage so they apply instantly and survive a storage outage
-
+// SETTINGS
 const SETTINGS_KEY = 'hh_settings';
 function readLocalSettings() {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
@@ -1370,7 +1435,7 @@ function markSettingsDirty(dirty) {
   settingsDirty = dirty;
   const btn = $('#btn-save-settings');
   btn.disabled = !dirty;
-  btn.textContent = dirty ? 'Save' : 'Saved';
+  btn.textContent = dirty ? 'Save changes' : 'Saved';
 }
 
 async function loadSettings() {
@@ -1410,8 +1475,29 @@ $('#btn-save-settings').addEventListener('click', async () => {
     if (error) failed = true;
   }
   markSettingsDirty(false);
-  showToast(failed ? 'Saved on this device. Syncing to storage failed.' : 'Settings saved', failed ? 'info' : 'success');
+  showToast(failed ? 'Saved locally. Cloud sync could not complete.' : 'Settings saved', failed ? 'info' : 'success');
 });
+
+function setMastheadSyncState(connected, count = null) {
+  const pill = $('#mast-db-pill');
+  const txt = $('#mast-db-text');
+  const ledgerLive = $('#ledger-live-label');
+  if (pill) {
+    pill.classList.toggle('connected', connected === true);
+    pill.classList.toggle('disconnected', connected === false);
+  }
+  if (txt) {
+    txt.textContent = connected === true
+      ? (count != null ? `Synced \u00b7 ${count}` : 'Synced')
+      : connected === false
+        ? 'Offline'
+        : 'Syncing';
+  }
+  if (ledgerLive) {
+    ledgerLive.classList.toggle('is-live', connected === true);
+    ledgerLive.textContent = connected === true ? 'Live \u00b7 ap-south-1' : 'Local Mode';
+  }
+}
 
 async function checkDbStatus() {
   const statusEl = $('#db-status');
@@ -1428,19 +1514,23 @@ async function checkDbStatus() {
     statusEl.className = 'db-status disconnected';
     analysesCountEl.textContent = '-';
     claimsCountEl.textContent = '-';
+    setMastheadSyncState(false);
     return;
   }
   statusEl.textContent = 'Connected';
   statusEl.className = 'db-status connected';
-  analysesCountEl.textContent = a.count ?? 0;
-  claimsCountEl.textContent = c.count ?? 0;
+  analysesCountEl.textContent = (a.count ?? 0).toLocaleString();
+  claimsCountEl.textContent = (c.count ?? 0).toLocaleString();
+  setMastheadSyncState(true, a.count ?? 0);
 }
 
-// DASHBOARD - running totals in the ledger
-
+// DASHBOARD - running totals in the desk ledger
 async function loadDashboardStats() {
   const { data: analyses, error } = await db.from('analyses').select('trust_score, verified_count, total_claims');
-  if (error || !analyses) return;
+  if (error || !analyses) {
+    setMastheadSyncState(false);
+    return;
+  }
   const totalAnalyses = analyses.length;
   const totalClaims = analyses.reduce((s, a) => s + (a.total_claims || 0), 0);
   const totalVerified = analyses.reduce((s, a) => s + (a.verified_count || 0), 0);
@@ -1450,6 +1540,7 @@ async function loadDashboardStats() {
   animateNum('dash-claims', totalClaims);
   animateNumWithSuffix($('#dash-avg-score'), avgScore, '%');
   animateNumWithSuffix($('#dash-accuracy'), accuracy, '%');
+  setMastheadSyncState(true, totalAnalyses);
 }
 
 function animateNumWithSuffix(el, target, suffix) {
@@ -1459,8 +1550,7 @@ function animateNumWithSuffix(el, target, suffix) {
   animateNum(num, target);
 }
 
-// DIALOG - a small promise-based confirm that matches the rest of the UI
-
+// DIALOG
 function confirmDialog({ title, body, confirm = 'Confirm', danger = false }) {
   const dlg = $('#confirm-dialog');
   if (!dlg || !dlg.showModal) return Promise.resolve(window.confirm(`${title}\n\n${body}`));
@@ -1491,8 +1581,8 @@ function downloadFile(name, content, type) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-// FEATURE: Voice Input
 
+// VOICE INPUT
 (() => {
   const micBtn = $('#btn-mic');
   if (!micBtn) return;
@@ -1511,27 +1601,25 @@ function downloadFile(name, content, type) {
 
     recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false; // Disable interim - prevents duplicate/repeated words
+    recognition.interimResults = false;
     recognition.lang = navigator.language || 'en-US';
 
-    const startText = input.value; // Text that was in box before recording
-    let newSpeech = '';             // Only speech added this session
+    const startText = input.value;
+    let newSpeech = '';
 
     recognition.onstart = () => {
       isRecording = true;
       micBtn.classList.add('recording');
       micBtn.setAttribute('aria-pressed', 'true');
-      showToast('Listening. Click the mic again to stop.', 'info');
+      showToast('Dictation active. Click microphone again to stop.', 'info');
     };
 
     recognition.onresult = (e) => {
-      // Only process final results - accumulate new speech
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
           newSpeech += (newSpeech ? ' ' : '') + e.results[i][0].transcript.trim();
         }
       }
-      // Show: original text + new speech (no duplication)
       setInputText(startText + (startText && newSpeech ? ' ' : '') + newSpeech);
     };
 
@@ -1545,8 +1633,8 @@ function downloadFile(name, content, type) {
       isRecording = false;
       micBtn.classList.remove('recording');
       micBtn.setAttribute('aria-pressed', 'false');
-      const why = { 'not-allowed': 'Microphone access was blocked.', 'no-speech': 'Did not hear anything.', network: 'Voice input needs a connection.' };
-      if (e.error !== 'aborted') showToast(why[e.error] || 'Voice input stopped.', 'error');
+      const why = { 'not-allowed': 'Microphone permission was denied.', 'no-speech': 'No speech detected.', network: 'Dictation requires an active connection.' };
+      if (e.error !== 'aborted') showToast(why[e.error] || 'Dictation stopped.', 'error');
     };
 
     recognition.start();
@@ -1554,51 +1642,49 @@ function downloadFile(name, content, type) {
 })();
 
 // EXPORT, COPY, SHARE
-
 function reportText() {
   const total = currentClaims.length;
   const count = s => currentClaims.filter(c => c.status === s).length;
-  let text = `Hallucination Hunter report\n${new Date().toLocaleString()}\n\n`;
-  text += `Trust score: ${scoreOf(currentClaims)}% across ${total} claims\n`;
-  text += `Verified: ${count('verified')}, unverifiable: ${count('unverifiable')}, wrong: ${count('false')}\n\n`;
+  let text = `Hallucination Hunter Verification Dossier\n${new Date().toLocaleString()}\n\n`;
+  text += `Verification Index: ${scoreOf(currentClaims)}% across ${total} claims\n`;
+  text += `Verified: ${count('verified')} | Unverifiable: ${count('unverifiable')} | Contradicted: ${count('false')}\n\n`;
   currentClaims.forEach((c, i) => {
-    text += `${i + 1}. ${VERDICT_LABELS[c.status]} (${c.confidence}% confidence)\n`;
-    text += `   "${c.text}"\n`;
-    if (c.correction) text += `   Actually: ${c.correction}\n`;
-    text += `   ${c.explanation}\n`;
-    text += `   Source: ${c.source}${safeUrl(c.sourceUrl) ? ' - ' + c.sourceUrl : ''}\n\n`;
+    text += `${String(i + 1).padStart(2, '0')}. ${VERDICT_LABELS[c.status]} (${c.confidence}% certainty)\n`;
+    text += `    "${c.text}"\n`;
+    if (c.correction) text += `    Correction: ${c.correction}\n`;
+    text += `    ${c.explanation}\n`;
+    text += `    Source: ${c.source}${safeUrl(c.sourceUrl) ? ' - ' + c.sourceUrl : ''}\n\n`;
   });
   return text;
 }
 
 function reportMarkdown() {
-  const lines = ['# Hallucination Hunter report', '', `Trust score **${scoreOf(currentClaims)}%** across ${currentClaims.length} claims. Checked ${new Date().toLocaleString()}.`, '', '| # | Verdict | Confidence | Claim | Source |', '|---|---|---|---|---|'];
+  const lines = ['# Hallucination Hunter Dossier', '', `Verification Index **${scoreOf(currentClaims)}%** across ${currentClaims.length} claims. Checked ${new Date().toLocaleString()}.`, '', '| # | Verdict | Certainty | Claim | Source |', '|---|---|---|---|---|'];
   const cell = s => String(s || '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
   currentClaims.forEach((c, i) => {
     const src = safeUrl(c.sourceUrl) ? `[${cell(c.source)}](${c.sourceUrl})` : cell(c.source);
-    lines.push(`| ${i + 1} | ${VERDICT_LABELS[c.status]} | ${c.confidence}% | ${cell(c.text)}${c.correction ? '<br>*Actually:* ' + cell(c.correction) : ''} | ${src} |`);
+    lines.push(`| ${String(i + 1).padStart(2, '0')} | ${VERDICT_LABELS[c.status]} | ${c.confidence}% | ${cell(c.text)}${c.correction ? '<br>*Correction:* ' + cell(c.correction) : ''} | ${src} |`);
   });
-  lines.push('', '## Original text', '', currentText.split('\n').map(l => '> ' + l).join('\n'));
+  lines.push('', '## Manuscript', '', currentText.split('\n').map(l => '> ' + l).join('\n'));
   return lines.join('\n');
 }
 
 $('#btn-export')?.addEventListener('click', () => {
-  if (!currentClaims.length) { showToast('No results to print', 'error'); return; }
+  if (!currentClaims.length) { showToast('No dossier to print', 'error'); return; }
   $$('.claim-detail').forEach(d => { d.hidden = false; d.classList.add('open'); });
   window.print();
 });
 
 $('#btn-copy')?.addEventListener('click', async () => {
-  if (!currentClaims.length) { showToast('No results to copy', 'error'); return; }
-  if (await copyText(reportText())) showToast('Report copied', 'success');
+  if (!currentClaims.length) { showToast('No dossier to copy', 'error'); return; }
+  if (await copyText(reportText())) showToast('Dossier copied to clipboard', 'success');
 });
 
 $('#btn-markdown')?.addEventListener('click', () => {
-  if (!currentClaims.length) { showToast('No results to download', 'error'); return; }
+  if (!currentClaims.length) { showToast('No dossier to export', 'error'); return; }
   downloadFile(`fact-check-${new Date().toISOString().slice(0, 10)}.md`, reportMarkdown(), 'text/markdown');
 });
 
-// Share links carry the text and verdicts in the URL fragment; nothing is uploaded.
 function encodeShare() {
   const data = {
     v: 2,
@@ -1623,7 +1709,6 @@ function decodeShare(str) {
     }));
     return { text: data.x || claims.map(c => c.text).join(' '), claims };
   }
-  // v1 links from older builds
   const claims = (data.claims || []).map((c, i) => ({
     id: i + 1, text: c.t, originalText: c.t, status: normalizeStatus(c.s), confidence: normalizeConfidence(c.c),
     explanation: c.e, source: c.src, sourceUrl: null, correction: null, category: 'General'
@@ -1632,17 +1717,17 @@ function decodeShare(str) {
 }
 
 $('#btn-share')?.addEventListener('click', async () => {
-  if (!currentClaims.length) { showToast('No results to share', 'error'); return; }
+  if (!currentClaims.length) { showToast('No dossier to share', 'error'); return; }
   let url;
   try {
     url = location.origin + location.pathname + '#share=' + encodeShare();
-  } catch { showToast('Could not build a link for this check', 'error'); return; }
-  if (url.length > 16000) { showToast('Too long for a link. Use Copy report instead.', 'error'); return; }
+  } catch { showToast('Could not encode share link', 'error'); return; }
+  if (url.length > 16000) { showToast('Dossier is too large for a URL. Use Copy report instead.', 'error'); return; }
   if (navigator.share && matchMedia('(pointer: coarse)').matches) {
-    try { await navigator.share({ title: 'Fact check', text: `Trust score ${scoreOf(currentClaims)}% across ${currentClaims.length} claims`, url }); return; }
+    try { await navigator.share({ title: 'Hallucination Hunter Dossier', text: `Verification Index ${scoreOf(currentClaims)}% across ${currentClaims.length} claims`, url }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
   }
-  if (await copyText(url)) showToast('Link copied. Anyone with it sees this result.', 'success');
+  if (await copyText(url)) showToast('Share link copied to clipboard', 'success');
 });
 
 function loadSharedAnalysis() {
@@ -1655,33 +1740,30 @@ function loadSharedAnalysis() {
     currentText = text;
     if (text) setInputText(text);
     displayResults(text, claims);
-    showToast('Showing a shared check', 'info');
+    showToast('Loaded shared verification dossier', 'info');
   } catch (e) {
     console.warn('Bad share link:', e);
-    showToast('That share link is damaged or incomplete', 'error');
+    showToast('That share link is incomplete or corrupted', 'error');
   }
   history.replaceState(null, '', location.pathname + location.search);
   return true;
 }
 
-// Batch mode is handled inside runAnalysis(); this just explains the syntax.
 $('#batch-mode')?.addEventListener('change', e => {
-  if (e.target.checked) showToast('Separate texts with a line containing only ---', 'info');
+  if (e.target.checked) showToast('Separate multiple passages with --- on its own line', 'info');
 });
 
 // UTILITIES
-
 function escapeRegExp(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function escapeHtml(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function escapeAttr(s) { return escapeHtml(s); }
 
-// THEME - light by default, dark on request or when the OS prefers it
-
+// THEME
 function applyTheme(mode) {
   const dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = dark ? '#1a1815' : '#f3efe6';
+  if (meta) meta.content = dark ? '#161411' : '#f4f0e8';
   $$('[data-theme-choice]').forEach(b => b.setAttribute('aria-pressed', b.dataset.themeChoice === mode ? 'true' : 'false'));
 }
 function currentThemeMode() { try { return localStorage.getItem(THEME_KEY) || 'system'; } catch { return 'system'; } }
@@ -1697,7 +1779,6 @@ $('#theme-toggle')?.addEventListener('click', () => {
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { if (currentThemeMode() === 'system') applyTheme('system'); });
 
 // CONNECTIVITY
-
 function updateOnline() {
   const bar = $('#offline-bar');
   if (bar) bar.classList.toggle('show', navigator.onLine === false);
@@ -1705,8 +1786,7 @@ function updateOnline() {
 window.addEventListener('online', updateOnline);
 window.addEventListener('offline', updateOnline);
 
-// KEYBOARD - "/" focuses the input, "?" opens the shortcuts sheet
-
+// KEYBOARD SHORTCUTS
 document.addEventListener('keydown', e => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
   if (e.key === 'Escape' && activeController) { activeController.abort(); return; }
@@ -1718,7 +1798,6 @@ $('#btn-shortcuts')?.addEventListener('click', () => $('#shortcuts-dialog')?.sho
 $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close('cancel'); }));
 
 // INIT
-
 (function init() {
   applyTheme(currentThemeMode());
   updateOnline();
@@ -1731,7 +1810,6 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
     try { const draft = localStorage.getItem(DRAFT_KEY); if (draft) setInputText(draft); } catch {}
   }
 
-  // Text handed over by the extension or another app: ?text=...
   const params = new URLSearchParams(location.search);
   const handed = params.get('text');
   if (handed && !shared) {
@@ -1749,7 +1827,8 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }
 })();
-// GLOBAL SEARCH (Ctrl/Cmd+K) - arrow keys move, Enter opens, Esc closes
+
+// GLOBAL SEARCH (Ctrl/Cmd+K)
 (() => {
   const toggle = $('#global-search-toggle');
   const overlay = $('#search-overlay');
@@ -1757,11 +1836,11 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
   const out = $('#search-results');
   if (!toggle || !overlay) return;
 
-  const EMPTY = '<div class="search-empty-state"><p>Start typing to search everything you have checked.</p></div>';
+  const EMPTY = '<div class="search-empty-state"><p>Type a claim, topic, date, or domain to search the verification archive.</p></div>';
   let lastFocus = null;
   let timer = null;
   let seq = 0;
-  let cache = null; // { analyses, claims } for the life of one open
+  let cache = null;
 
   function open() {
     if (!overlay.classList.contains('hidden')) return;
@@ -1835,7 +1914,7 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
 
   async function run(q) {
     const my = ++seq;
-    if (!cache) out.innerHTML = '<div class="search-empty-state"><p>Searching...</p></div>';
+    if (!cache) out.innerHTML = '<div class="search-empty-state"><p>Searching archive&hellip;</p></div>';
     let data;
     try { data = await load(); }
     catch (err) { if (my === seq) out.innerHTML = `<div class="search-no-results"><p>${escapeHtml(err.message)}</p></div>`; return; }
@@ -1854,20 +1933,20 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
     const sources = [...srcMap.values()].filter(s => s.url.toLowerCase().includes(lq) || s.name.toLowerCase().includes(lq));
 
     if (!analyses.length && !claims.length && !sources.length) {
-      out.innerHTML = `<div class="search-no-results"><p>Nothing matches "<strong>${escapeHtml(q)}</strong>".</p></div>`;
+      out.innerHTML = `<div class="search-no-results"><p>No archived entries match &ldquo;<strong>${escapeHtml(q)}</strong>&rdquo;.</p></div>`;
       return;
     }
 
     let html = '';
     if (analyses.length) {
-      html += `<div class="search-section-label">Checks (${analyses.length})</div>`;
+      html += `<div class="search-section-label">Archived Dossiers (${analyses.length})</div>`;
       analyses.slice(0, 5).forEach(a => {
         const t = a.input_text || '';
         const at = Math.max(0, t.toLowerCase().indexOf(lq) - 30);
-        const snippet = (at ? '...' : '') + t.slice(at, at + 90);
+        const snippet = (at ? '\u2026' : '') + t.slice(at, at + 90);
         html += `<div class="search-result-item" role="option" data-action="analysis" data-id="${escapeAttr(a.id)}">
           <div class="search-result-icon history band-${bandOf(a.trust_score)}">${a.trust_score ?? '-'}</div>
-          <div class="search-result-info"><div class="search-result-title">${highlight(snippet, q)}</div><div class="search-result-meta">Trust ${a.trust_score ?? '-'}%, ${relativeDate(a.created_at)}</div></div>
+          <div class="search-result-info"><div class="search-result-title">${highlight(snippet, q)}</div><div class="search-result-meta">Index ${a.trust_score ?? '-'}% &middot; ${relativeDate(a.created_at)}</div></div>
         </div>`;
       });
     }
@@ -1877,16 +1956,16 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
         const st = normalizeStatus(c.status);
         html += `<div class="search-result-item" role="option" data-action="analysis" data-id="${escapeAttr(c.analysis_id)}">
           <div class="search-result-icon claim">${MARKS[st]}</div>
-          <div class="search-result-info"><div class="search-result-title">${highlight((c.claim_text || '').slice(0, 110), q)}</div><div class="search-result-meta">${VERDICT_LABELS[st]}, ${c.confidence}% confidence</div></div>
+          <div class="search-result-info"><div class="search-result-title">${highlight((c.claim_text || '').slice(0, 110), q)}</div><div class="search-result-meta">${VERDICT_LABELS[st]} &middot; ${c.confidence}% certainty</div></div>
         </div>`;
       });
     }
     if (sources.length) {
-      html += `<div class="search-section-label">Sources (${sources.length})</div>`;
+      html += `<div class="search-section-label">Cited Sources (${sources.length})</div>`;
       sources.slice(0, 5).forEach(s => {
         html += `<div class="search-result-item" role="option" data-action="source" data-url="${escapeAttr(s.url)}">
           <div class="search-result-icon source">${LINK_ICON}</div>
-          <div class="search-result-info"><div class="search-result-title">${highlight(s.name, q)}</div><div class="search-result-meta">${highlight(s.url, q)}, cited ${s.count}x</div></div>
+          <div class="search-result-info"><div class="search-result-title">${highlight(s.name, q)}</div><div class="search-result-meta">${highlight(s.url, q)} &middot; cited ${s.count}&times;</div></div>
         </div>`;
       });
     }
@@ -1903,5 +1982,5 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
     });
   }
 })();
-// Kept as a no-op: the old accuracy tab was folded into the results header.
+
 function updateAccuracyTab() {}

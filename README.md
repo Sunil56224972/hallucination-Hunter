@@ -1,277 +1,193 @@
-<p align="center">
-  <img src="logo.png" alt="Hallucination Hunter" width="72" height="72">
-</p>
+# Hallucination Hunter
 
-<h1 align="center">Hallucination Hunter</h1>
+An editorial fact-checking desk for AI-generated text. Hallucination Hunter isolates every discrete factual statement from an LLM answer, cross-examines it against authoritative primary records, and annotates the original manuscript line by line with source citations, confidence ratings, and corrected facts.
 
-<p align="center">
-  Claim-level fact verification engine for AI-generated text.<br>
-  <em>Don't Trust. Verify.</em>
-</p>
-
-<p align="center">
-  <a href="https://hallucination-hunter-five.vercel.app">Live Demo</a> &middot;
-  <a href="#features">Features</a> &middot;
-  <a href="#architecture">Architecture</a> &middot;
-  <a href="#getting-started">Getting Started</a> &middot;
-  <a href="#chrome-extension">Chrome Extension</a>
-</p>
-
----
-
-## Problem
-
-Large Language Models generate text that sounds authoritative but contains fabricated facts — known as **hallucinations**. Studies estimate 5–15% of AI-generated factual claims are incorrect, yet most users have no practical way to verify them.
-
-Existing tools only detect whether text was *written by AI*. They don't tell you **which specific facts are wrong**.
-
-## Solution
-
-Hallucination Hunter splits AI-generated text into individual factual claims and verifies each one independently. Every claim receives a verdict (`Verified`, `Unverifiable`, or `Wrong`), a confidence score, source attribution, and — when applicable — an auto-correction with the accurate fact.
-
-Analysis completes in under 2 seconds using Groq's LPU inference hardware.
-
-<p align="center">
-  <img src="screenshots/app-main.png" alt="Main Interface" width="680">
-</p>
-
----
-
-## Features
-
-### Analysis Engine
-
-- **Claim extraction** — AI identifies every discrete factual statement in the input text
-- **Independent verification** — each claim verified separately with confidence scoring (0–100%)
-- **Auto-correction** — incorrect claims are rewritten with accurate information
-- **Source attribution** — claims linked to trusted references (Wikipedia, WHO, NASA, etc.)
-- **Trust score** — aggregate reliability metric with visual breakdown
-
-### User Interface
-
-- **Voice input** — dictate text using Web Speech API
-- **Batch mode** — analyze multiple text blocks simultaneously
-- **Filter tabs** — view All / Verified / Unverifiable / Wrong claims
-- **Annotated text** — original text highlighted inline with color-coded claim markers
-- **Example loader** — pre-loaded samples for quick demonstration
-- **Light and dark themes** — follows the system setting, or pick one in Settings
-- **Keyboard first** — `Ctrl+Enter` to check, `/` to focus the text box, `Ctrl+K` to search, `?` for the full list
-- **Cancel and retry** — stop a running check with `Esc`; failed checks offer a one-click retry
-- **Draft autosave** — unfinished text survives a reload
-- **Deep links** — `#/history`, `#/settings`, `#/about` work with Back/Forward
-
-### Export and Sharing
-
-- **PDF report** — downloadable fact-check report
-- **Copy results** — one-click copy of annotated analysis
-- **Share via URL** — generate a shareable link to any analysis result
-- **Markdown export** — download the report as a `.md` file
-- **History export** — download every saved check as JSON
-
-### Data Persistence
-
-- **Cloud storage** — analysis history stored in Supabase (PostgreSQL)
-- **User isolation** — anonymous UUID-based data separation
-- **Dashboard** — aggregate statistics: total analyses, accuracy rate, category breakdown
-- **History browser** — search, filter, and revisit past analyses
-- **Undo delete** — removed checks can be restored for a few seconds
-
-### Platform Coverage
-
-- **Web application** — responsive, works on desktop and mobile browsers
-- **Installable app (PWA)** — service worker keeps the app shell available offline
-- **Chrome extension** — Manifest V3; right-click any selection to check it, no API key needed
-- **Mobile layout** — touch-friendly navigation with bottom tab bar
-
----
-
-## Architecture
+Built with vanilla HTML, CSS, and ES2022 JavaScript, with Supabase Postgres for durable dossier storage. There is no build step.
 
 ```
-                         User Interface
-          ┌────────────────┬────────────────┐
-          │    Web App     │  Chrome Ext    │
-          │  (index.html)  │  (popup.html)  │
-          └───────┬────────┴───────┬────────┘
-                  │                │
-                  └────────┬───────┘
-                           │
-                     ┌─────▼─────┐
-                     │  app.js   │
-                     │  Engine   │
-                     └─────┬─────┘
-                           │
-             ┌─────────────┼─────────────┐
-             │             │             │
-    ┌────────▼────────┐    │    ┌────────▼────────┐
-    │  /api/groq.js   │    │    │    Supabase     │
-    │  Vercel Proxy   │    │    │   PostgreSQL    │
-    │  Rate limiting  │    │    │  History/Stats  │
-    └────────┬────────┘    │    └─────────────────┘
-             │             │
-    ┌────────▼────────┐    │
-    │    Groq API     │    │
-    │  gpt-oss-120b   │    │
-    │   (LPU Cloud)   │    │
-    └─────────────────┘    │
-                           │
-                  ┌────────▼────────┐
-                  │  /api/search.js │
-                  │  Source lookup  │
-                  └─────────────────┘
+AI Model Output ──POST /api/groq──> ┌──────────────────────────┐ ──JSON──> Annotated Manuscript & Proof Dossier
+(ChatGPT / Claude / Gemini)         │   Hallucination Hunter   │ <──sync── Supabase Postgres (analyses & claims)
+                                    └────────────┬─────────────┘
+                                                 │
+                                                 ├──> NVD, WHO, NASA, PubMed, Wikipedia, arXiv (Citations)
+                                                 ├──> Chrome MV3 Browser Extension (Right-click selection)
+                                                 └──> Capacitor Android / PWA Client (.apk / standalone)
 ```
 
-**Data flow:**
-```
-User input → Claim extraction → Per-claim verification → Source search
-  → Trust score calculation → Visual results → Cloud storage
-```
+The fastest way to verify text on the web is the bundled Manifest V3 browser extension (`chrome-extension/`), which checks any highlighted passage from your context menu without navigating away. For mobile devices, the web app compiles directly into an installable Android APK via Capacitor.
 
 ---
 
-## Tech Stack
+## How It Works
 
-| Layer | Technology | Rationale |
-|-------|-----------|-----------|
-| Frontend | HTML5, CSS3, Vanilla JS | Zero-dependency, fast load times |
-| AI Model | GPT-OSS-120B | 120B parameter model, high factual accuracy |
-| Inference | Groq LPU | ~500 tokens/sec, sub-2s end-to-end |
-| Backend | Vercel Serverless | Auto-scaling edge functions |
-| Database | Supabase (PostgreSQL) | Real-time subscriptions, row-level security |
-| Extension | Chrome Manifest V3 | Modern security model, cross-browser |
-| Search | Google Custom Search | Live source verification |
+Every verification run follows a three-stage pipeline streamed live to the desk:
+
+| Phase | What Happens |
+| :--- | :--- |
+| **01 Isolation** | Decomposes the manuscript into atomic factual statements. Rhetorical filler and subjective framing are set aside; exact dates, numbers, and proper nouns are preserved verbatim. |
+| **02 Cross-Examination** | Tests each isolated claim against primary reference consensus (NASA, WHO, NIH, PubMed, Encyclopedia Britannica, Wikipedia, etc.). The verifier is instructed never to guess: uncertain assertions are marked `unverifiable`, and refuted assertions require an explicit corrected statement. |
+| **03 Scoring & Attribution** | Assigns a certainty rating from 0 to 100, files a primary source link, calculates the aggregate Verification Index, and renders proofreader underlines directly across the original manuscript. |
+
+Hallucination Hunter never presents a claim as true without linking its underlying authority. Claims falling below your configured confidence threshold in Settings are dimmed across all views.
 
 ---
 
-## Getting Started
+## Surfaces & Ecosystem
 
-**Prerequisites:** Node.js 18+, a Groq API key from [console.groq.com](https://console.groq.com)
+- **Galley Proof Desk** — Live manuscript input with word count, specimen presets, voice dictation, and batch checking.
+- **Verification Dossier** — Proportional breakdown meter, circular index readout, and one-click export (Markdown, PDF, Clipboard, Share URL).
+- **Itemized Findings Ledger** — Numbered claim cards (`#01`, `#02`...) with rectangular editorial verdict stamps (`VERIFIED`, `UNVERIFIABLE`, `CONTRADICTED`), confidence gauges, and expandable reasoning drawers.
+- **Annotated Manuscript** — Original prose highlighted in place with proofreader marks and superscripts; clicking any underline jumps to its dossier card.
+- **Archive & History** — Stored verification dossiers synced with Supabase Postgres, featuring live keyword filtering, JSON backup export, and non-destructive undo delete.
+- **Reference Index** — Citation frequency directory ranking authoritative institutions by usage across your checks.
+- **Global Search (`Ctrl+K`)** — Instant modal searching across past analyses, claims, and cited URLs with keyboard navigation.
+- **Chrome Extension (MV3)** — In-page fact-checking on any website via context menu (`chrome-extension/`).
+- **Mobile & Android App** — Native-feeling responsive layout with bottom navigation bar and Capacitor Android build support.
+
+---
+
+## Quick Start
+
+Requires Node 18 or newer.
 
 ```bash
-# Clone
+# Clone the repository
 git clone https://github.com/Sunil56224972/hallucination-Hunter.git
 cd hallucination-Hunter
 
-# Run
-npx live-server --port=3000
+# Serve locally (no build step needed)
+npx serve -l 3000
 ```
 
-Open `http://localhost:3000`, paste any AI-generated text, click **Check claims**. Local runs use the hosted proxy, so no key is needed. To call Groq directly while developing, set `window.GROQ_API_KEY` in the browser console before checking.
+Open `http://localhost:3000`. Local runs automatically proxy through the hosted verification API, so no API key is required for testing.
 
-**Vercel deployment** — add `GROQ_API_KEY` as an environment variable in the Vercel dashboard.
+To run with your own Groq key locally:
+
+```bash
+export GROQ_API_KEY="gsk_..."
+# Or pass window.GROQ_API_KEY in the browser developer console
+```
 
 ---
 
 ## Chrome Extension
 
-The browser extension allows fact-checking on any website without navigating away from the page.
+The browser extension allows fact-checking text on any webpage without opening a new tab.
 
-**Capabilities:**
-- Select text, right-click, **Check with Hallucination Hunter**
-- Or copy text and press `Alt+Shift+H`; the popup pre-fills it
-- Filter claims, copy a plain-text report, or open the result in the full app
-- The last result is kept when the popup closes
-- Calls the hosted proxy, so the extension ships no API key
+### Capabilities:
+- Select text on any webpage &rarr; right-click &rarr; **Check with Hallucination Hunter**
+- Keyboard shortcut `Alt+Shift+H` to pre-fill the popup with clipboard content
+- Filter claims by verdict, copy reports, or open directly in the full web app
+- Persists the latest result across popup closes
+- Ships with zero bundled secrets: all requests securely route through the serverless proxy
 
-**Install (developer mode):**
-1. Navigate to `chrome://extensions/`
-2. Enable **Developer mode**
-3. Click **Load unpacked** and select the `chrome-extension/` directory
-4. Pin the extension in the toolbar
-5. After pulling updates, press the reload icon on the extension card
-
-Works on Chrome, Edge, Brave, Opera, and other Chromium-based browsers.
+### Installation (Developer Mode):
+1. Navigate to `chrome://extensions/` in Chrome, Brave, or Edge.
+2. Toggle **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `chrome-extension/` directory.
+4. Pin Hallucination Hunter to your toolbar.
 
 ---
 
-## Icons and Android build
+## Android App & PWA
 
-The mark is a dark tile with three lines of text, one struck in red. All sizes are generated from the same source:
+The application is structured to run as a standalone Progressive Web App (PWA) with service-worker offline caching (`sw.js`), and can be packaged into an Android APK via Capacitor.
 
-- `assets/` - favicon, apple-touch icon and PWA icons used by `manifest.webmanifest`
-- `chrome-extension/icons/` - 16, 32, 48 and 128 px extension icons
-- `resources/` - source artwork for the Android app (Capacitor)
-
-The Android app wraps the web app, so UI changes ship with it. To regenerate launcher and splash icons after changing the artwork:
-
+### Building the Android APK:
 ```bash
+# Generate launcher icons and splash screens from resources/
 npx @capacitor/assets generate --android
+
+# Synchronize web assets with the native Android wrapper
 npx cap sync android
+
+# Build the release or debug APK
+cd android && ./gradlew assembleDebug
+```
+The resulting `.apk` file is located at `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+---
+
+## Supabase Storage Backend
+
+Durable persistence is powered by Supabase Postgres (`ap-south-1`). If the Supabase CDN client is unreachable, the engine falls back to an integrated PostgREST REST client without losing functionality.
+
+```
+Tables:
+├── analyses        # Master dossier records (trust score, totals, timestamp, user ID)
+├── claims          # Itemized factual assertions with confidence, source URL, and correction
+└── settings        # User preferences (thresholds, appearance, engine provider)
 ```
 
+To connect your own Supabase project:
+1. Update `SUPABASE_URL` and `SUPABASE_KEY` in `app.js`.
+2. Apply the schema indexes for fast query performance:
+   - `idx_claims_analysis_id` on `claims(analysis_id)`
+   - `idx_analyses_created_at_desc` on `analyses(created_at desc)`
+   - `idx_settings_key_user` on `settings(key, user_id)`
+
 ---
 
-## Project Structure
+## Deploying on Vercel
+
+The application is designed for instant zero-configuration deployment on Vercel.
+
+```bash
+vercel --prod
+```
+
+### Environment Variables:
+| Variable | Description |
+| :--- | :--- |
+| `GROQ_API_KEY` | **Required.** Your Groq API key from [console.groq.com](https://console.groq.com) powering `/api/groq.js`. |
+
+---
+
+## API Reference
+
+| Method | Endpoint | Purpose |
+| :--- | :--- | :--- |
+| `POST` | `/api/groq` | Serverless AI inference proxy with rate limiting (10 req/min/IP) and input validation |
+| `POST` | `/api/search` | DuckDuckGo web search endpoint for real-time reference URL retrieval |
+| `GET` | `/sw.js` | Service worker managing offline cache and asset freshness |
+| `GET` | `/manifest.webmanifest` | PWA manifest defining theme colors and app icons |
+
+---
+
+## Project Layout
 
 ```
 hallucination-Hunter/
-├── index.html                  Main application
-├── app.js                      Core engine
-├── style.css                   Design system (light and dark)
-├── sw.js                       Offline support
-├── vercel.json                 Deployment configuration
+├── index.html              # Main single-page application & semantic layout
+├── style.css               # Handcrafted design system (Light Paper & Night Press)
+├── app.js                  # Extraction engine, verification pipeline & Supabase sync
+├── sw.js                   # Service worker cache strategy (v8)
+├── manifest.webmanifest    # Progressive Web App manifest
+├── vercel.json             # Edge headers, cache rules & security policies
 ├── api/
-│   ├── groq.js                 AI proxy with rate limiting
-│   └── search.js               Source search endpoint
-├── chrome-extension/
-│   ├── manifest.json           MV3 configuration
-│   ├── popup.html / css / js   Extension UI and logic
-│   ├── content.js              Page-level text capture
-│   └── background.js           Service worker
-└── screenshots/                Application screenshots
+│   ├── groq.js             # Serverless Groq inference proxy with rate limiting
+│   └── search.js           # Reference discovery endpoint
+├── chrome-extension/       # Manifest V3 browser extension
+│   ├── manifest.json       # Extension configuration & permissions
+│   ├── popup.html / js     # Extension UI and verification logic
+│   ├── content.js          # In-page text capture
+│   └── background.js       # Background service worker & context menus
+├── resources/              # Capacitor Android icon & splash screen assets
+├── assets/                 # Web favicons, PWA icons, and brand video
+└── screenshots/            # UI screenshots & preview media
 ```
 
 ---
 
-## Security
+## Security & Privacy
 
-| Concern | Implementation |
-|---------|---------------|
-| API key exposure | Key lives only in the Vercel environment; web app, Android app and extension all go through `/api/groq` |
-| Abuse prevention | Rate limiting: 10 requests/min per IP |
-| Input validation | 20,000 character limit, model whitelist |
-| Cross-origin access | CORS enforcement in serverless proxy |
-| Transport security | HSTS, X-Frame-Options, CSP headers |
-| Extension permissions | `activeTab`, `storage`, `contextMenus`, and host access to the app's own proxy only |
+- **Zero Client-Side Keys:** `GROQ_API_KEY` is strictly held on the serverless proxy. The web app, browser extension, and Android APK all query `/api/groq`.
+- **Rate Limiting:** IP-based token bucket (10 requests/minute) protects against upstream quota abuse.
+- **Input Sanitization:** 20,000-character input caps and strict model whitelisting.
+- **Anonymous Isolation:** User dossiers are partitioned by browser-generated UUID tokens; no third-party tracking cookies or personal identifiable information are stored.
 
 ---
-
-## How Verification Works
-
-```
-Input:
-  "The Great Wall of China is visible from space and was built in 1420."
-
-Step 1 — Claim Extraction:
-  [1] "The Great Wall of China is visible from space"
-  [2] "The Great Wall was built in 1420"
-
-Step 2 — Verification:
-  [1] INCORRECT  (confidence: 95%)
-      Correction: Not visible to the naked eye from low Earth orbit.
-      Source: NASA
-
-  [2] UNVERIFIABLE  (confidence: 40%)
-      Note: Construction began in 7th century BC; major rebuilding
-      occurred under the Ming dynasty (1368–1644).
-      Source: Encyclopedia Britannica
-
-Step 3 — Trust Score:
-  25% — 0 verified, 1 unverifiable, 1 incorrect
-```
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
----
-
-<p align="center">
-  <sub>Built for truth in the age of AI.</sub>
-</p>
+MIT &copy; [Sunil](https://github.com/Sunil56224972). See [LICENSE](LICENSE) for details.
