@@ -3,7 +3,7 @@
 // Static files and fonts: serve from cache, refresh in the background.
 // API calls and storage requests are never cached.
 
-const VERSION = 'hh-v13';
+const VERSION = 'hh-v14';
 const SHELL = [
   './',
   'index.html',
@@ -12,8 +12,7 @@ const SHELL = [
   'manifest.webmanifest',
   'assets/favicon.svg',
   'assets/favicon-32.png',
-  'assets/icon-192.png',
-  'assets/brand/logo-lockup.webp'
+  'assets/icon-192.png'
 ];
 const CACHEABLE_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net'];
 

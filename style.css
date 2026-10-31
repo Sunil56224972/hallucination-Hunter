@@ -164,41 +164,6 @@ code, kbd {
   outline-offset: 2px;
 }
 
-/* Splash intro */
-.splash {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: grid;
-  place-items: center;
-  background: #f7f6f2;
-  transition: opacity 0.5s ease;
-}
-[data-theme="dark"] .splash {
-  background: #111110;
-}
-html:not(.hh-splash) .splash {
-  display: none;
-}
-html.hh-splash-out .splash {
-  opacity: 0;
-  pointer-events: none;
-}
-.splash-art {
-  width: min(420px, 78vw);
-  height: auto;
-  border-radius: 8px;
-}
-.splash-still {
-  display: none;
-}
-.splash.is-still .splash-video {
-  display: none;
-}
-.splash.is-still .splash-still {
-  display: block;
-}
-
 /* Accessibility & offline */
 .skip-link {
   position: fixed;
