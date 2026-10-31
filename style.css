@@ -639,7 +639,8 @@ html.hh-splash-out .splash {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px 12px;
   padding: 9px 14px;
   border-top: 1px solid var(--border);
   background: var(--surface-2);
@@ -648,10 +649,11 @@ html.hh-splash-out .splash {
 .input-meta {
   display: inline-flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   font-size: 12px;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .char-indicator.over {
@@ -666,6 +668,7 @@ html.hh-splash-out .splash {
   cursor: pointer;
   user-select: none;
   color: var(--ink-2);
+  white-space: nowrap;
 }
 .batch-toggle input {
   position: absolute;
@@ -700,6 +703,7 @@ html.hh-splash-out .splash {
 }
 
 .input-actions {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -712,6 +716,7 @@ html.hh-splash-out .splash {
   font-size: 13px;
   font-weight: 500;
   color: var(--ink-2);
+  white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .btn-text:hover:not(:disabled) {
@@ -741,6 +746,7 @@ html.hh-splash-out .splash {
   color: var(--btn-fg);
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 .btn-solid > * {

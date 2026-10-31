@@ -223,13 +223,13 @@ kbd {
   display: block;
 }
 
-.hh-i-sun { display: none; }
+.hh-icon-btn .hh-i-sun { display: none; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hh-i-moon { display: none; }
-  :root:not([data-theme="light"]) .hh-i-sun { display: block; }
+  :root:not([data-theme="light"]) .hh-icon-btn .hh-i-moon { display: none; }
+  :root:not([data-theme="light"]) .hh-icon-btn .hh-i-sun { display: block; }
 }
-:root[data-theme="dark"] .hh-i-moon { display: none; }
-:root[data-theme="dark"] .hh-i-sun { display: block; }
+:root[data-theme="dark"] .hh-icon-btn .hh-i-moon { display: none; }
+:root[data-theme="dark"] .hh-icon-btn .hh-i-sun { display: block; }
 
 /* Single scroll container */
 .hh-main {
