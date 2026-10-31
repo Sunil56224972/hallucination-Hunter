@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Hallucination Hunter",
-  "description": "Check AI answers claim by claim. Select text on any page or paste it in, and see what is verified, unverifiable or wrong.",
-  "version": "1.1.0",
+  "description": "Check AI answers claim by claim. Highlight text on any page or paste it in to see what is verified, unverifiable, or false.",
+  "version": "1.2.0",
   "minimum_chrome_version": "116",
   "permissions": [
     "activeTab",

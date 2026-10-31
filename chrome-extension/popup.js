@@ -1,79 +1,144 @@
-/* Hallucination Hunter - extension popup.
-   Talks to the same hosted proxy as the web app, so no API key ships with the extension. */
+/* Hallucination Hunter — Companion Extension Popup
+   Uses the hosted /api/groq and /api/search endpoints so no API key ships in the extension. */
 
 'use strict';
 
 const APP_URL = 'https://hallucination-hunter-five.vercel.app/';
 const PROXY_URL = APP_URL + 'api/groq';
+const SEARCH_URL = APP_URL + 'api/search';
 const MODEL = 'openai/gpt-oss-120b';
 const MAX_CHARS = 20000;
 const TIMEOUT_MS = 75000;
 const CAPTURE_MAX_AGE = 5 * 60 * 1000;
 
 const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+
 const textInput = $('#hh-text-input');
 const analyzeBtn = $('#hh-analyze-btn');
 const loadingEl = $('#hh-loading');
 const errorEl = $('#hh-error');
 const resultsEl = $('#hh-results');
 const autoDetectEl = $('#hh-auto-detect');
+const collapsedBar = $('#hh-collapsed-bar');
+const collapsedSnippet = $('#hh-collapsed-snippet');
 
 let controller = null;
 let lastClaims = [];
 let lastText = '';
-let activeFilter = null;
+let activeFilter = 'all';
 
-// chrome.storage when running as an extension, localStorage when opened as a plain page.
 const store = {
   async get(keys) {
     if (globalThis.chrome && chrome.storage && chrome.storage.local) return chrome.storage.local.get(keys);
     const out = {};
-    keys.forEach(k => { try { const v = localStorage.getItem('hh_' + k); if (v !== null) out[k] = JSON.parse(v); } catch (e) { /* ignore */ } });
+    keys.forEach(k => {
+      try {
+        const v = localStorage.getItem('hh_ext_' + k);
+        if (v !== null) out[k] = JSON.parse(v);
+      } catch {
+        /* ignore */
+      }
+    });
     return out;
   },
   async set(obj) {
     if (globalThis.chrome && chrome.storage && chrome.storage.local) return chrome.storage.local.set(obj);
-    Object.entries(obj).forEach(([k, v]) => { try { localStorage.setItem('hh_' + k, JSON.stringify(v)); } catch (e) { /* ignore */ } });
+    Object.entries(obj).forEach(([k, v]) => {
+      try { localStorage.setItem('hh_ext_' + k, JSON.stringify(v)); } catch { /* ignore */ }
+    });
   }
 };
 
 const STEPS = [
-  'Isolating factual assertions\u2026',
-  'Cross-examining primary references\u2026',
-  'Weighing certainty & citations\u2026',
-  'Filing verification dossier\u2026'
+  'Extracting factual claims\u2026',
+  'Checking facts against records\u2026',
+  'Attaching reference links\u2026'
 ];
 
-// ---------- startup ----------
+// Query active tab selection when user opens popup after highlighting text
+async function readActiveTabSelection() {
+  if (!(globalThis.chrome && chrome.tabs && chrome.tabs.query && chrome.tabs.sendMessage)) return null;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id || !/^https?:/i.test(tab.url || '')) return null;
+    const resp = await chrome.tabs.sendMessage(tab.id, { type: 'hh-get-selection' });
+    if (resp && resp.text && resp.text.length >= 20) return resp;
+  } catch {
+    /* content script not loaded on this tab */
+  }
+  return null;
+}
+
+function applyPopupTheme(theme) {
+  if (theme === 'dark' || theme === 'light') {
+    document.documentElement.dataset.theme = theme;
+  } else {
+    delete document.documentElement.dataset.theme;
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     const manifest = globalThis.chrome && chrome.runtime && chrome.runtime.getManifest ? chrome.runtime.getManifest() : null;
     if (manifest) $('#hh-version').textContent = 'v' + manifest.version.replace(/\.0$/, '');
-  } catch (e) { /* not in extension context */ }
+  } catch {
+    /* standalone preview */
+  }
 
   if (/Mac/i.test(navigator.platform)) {
-    document.querySelector('.hh-hint kbd').textContent = 'Cmd';
+    const modKey = $('#hh-mod-key');
+    if (modKey) modKey.textContent = 'Cmd';
     $('#hh-shortcut-hint').textContent = 'Option+Shift+H';
   }
 
-  const data = await store.get(['capturedText', 'capturedAt', 'capturedFrom', 'autoRun', 'lastText', 'lastClaims', 'draft']);
+  const data = await store.get(['theme', 'capturedText', 'capturedAt', 'capturedFrom', 'autoRun', 'lastText', 'lastClaims', 'draft']);
+  if (data.theme) applyPopupTheme(data.theme);
+
+  const liveSel = await readActiveTabSelection();
   const captured = data.capturedText || '';
   const age = Date.now() - (data.capturedAt || 0);
 
-  if (captured.length > 10 && age < CAPTURE_MAX_AGE) {
+  if (captured.length > 15 && age < CAPTURE_MAX_AGE) {
     setText(captured);
-    autoDetectEl.textContent = data.capturedFrom ? `Staged passage from ${data.capturedFrom}.` : 'Staged passage from clipboard.';
+    autoDetectEl.textContent = data.capturedFrom ? `Loaded selection from ${data.capturedFrom}` : 'Loaded copied text';
     autoDetectEl.hidden = false;
     await store.set({ capturedText: '', autoRun: false });
     if (data.autoRun) { analyze(); return; }
+  } else if (liveSel && liveSel.text) {
+    setText(liveSel.text);
+    autoDetectEl.textContent = liveSel.host ? `Selected on ${liveSel.host}` : 'Loaded page selection';
+    autoDetectEl.hidden = false;
   } else if (data.lastText && Array.isArray(data.lastClaims) && data.lastClaims.length) {
     setText(data.lastText);
     displayResults(data.lastClaims, data.lastText, { instant: true });
+    return;
   } else if (data.draft) {
     setText(data.draft);
   }
   textInput.focus();
+});
+
+$('#hh-theme-btn')?.addEventListener('click', async () => {
+  const cur = document.documentElement.dataset.theme;
+  const sysDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = cur === 'dark' || (!cur && sysDark);
+  const next = isDark ? 'light' : 'dark';
+  applyPopupTheme(next);
+  await store.set({ theme: next });
+});
+
+$('#hh-paste-btn')?.addEventListener('click', async () => {
+  try {
+    const clip = await navigator.clipboard.readText();
+    if (clip && clip.trim()) {
+      setText(clip.trim());
+      autoDetectEl.hidden = true;
+      textInput.focus();
+    }
+  } catch {
+    textInput.focus();
+  }
 });
 
 function setText(t) {
@@ -96,25 +161,49 @@ textInput.addEventListener('input', () => {
   draftTimer = setTimeout(() => store.set({ draft: textInput.value }), 300);
 });
 
-// ---------- controls ----------
+function setResultsLayout(hasResults, editing = false) {
+  document.body.classList.toggle('has-results', hasResults);
+  document.body.classList.toggle('editing-input', editing);
+  collapsedBar.hidden = !(hasResults && !editing);
+}
+
+$('#hh-edit-btn')?.addEventListener('click', () => {
+  setResultsLayout(true, true);
+  textInput.focus();
+});
+
+$('#hh-new-btn')?.addEventListener('click', () => {
+  clearAll();
+});
 
 analyzeBtn.addEventListener('click', analyze);
 $('#hh-retry-btn').addEventListener('click', analyze);
 $('#hh-cancel-btn').addEventListener('click', () => controller && controller.abort());
 
-$('#hh-clear-btn').addEventListener('click', () => {
+function clearAll() {
   if (controller) controller.abort();
   setText('');
-  hide(resultsEl); hide(errorEl);
+  hide(resultsEl);
+  hide(errorEl);
   autoDetectEl.hidden = true;
-  lastClaims = []; lastText = '';
+  lastClaims = [];
+  lastText = '';
+  setResultsLayout(false, false);
   store.set({ draft: '', lastText: '', lastClaims: [] });
   textInput.focus();
-});
+}
+
+$('#hh-clear-btn').addEventListener('click', clearAll);
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!controller) analyze(); }
-  if (e.key === 'Escape' && controller) { e.preventDefault(); controller.abort(); }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    if (!controller) analyze();
+  }
+  if (e.key === 'Escape' && controller) {
+    e.preventDefault();
+    controller.abort();
+  }
 });
 
 $('#hh-copy-btn').addEventListener('click', async () => {
@@ -122,7 +211,7 @@ $('#hh-copy-btn').addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(reportText());
     flashLabel(btn, 'Copied');
-  } catch (e) {
+  } catch {
     flashLabel(btn, 'Copy failed');
   }
 });
@@ -134,42 +223,78 @@ $('#hh-open-btn').addEventListener('click', () => {
   else window.open(url, '_blank', 'noopener');
 });
 
-$$('.hh-summary-badge').forEach(b => b.addEventListener('click', () => {
-  activeFilter = activeFilter === b.dataset.filter ? null : b.dataset.filter;
-  $$('.hh-summary-badge').forEach(x => x.setAttribute('aria-pressed', x.dataset.filter === activeFilter ? 'true' : 'false'));
-  $$('.hh-claim-card').forEach(card => {
-    card.hidden = !!activeFilter && card.dataset.status !== activeFilter;
+$$('.hh-ftab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeFilter = btn.dataset.filter || 'all';
+    $$('.hh-ftab').forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    applyFilter();
   });
-}));
+});
 
-function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
+function applyFilter() {
+  const cards = $$('.hh-claim-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const showCard = activeFilter === 'all' || card.dataset.status === activeFilter;
+    card.hidden = !showCard;
+    if (showCard) visible++;
+  });
+  let empty = $('#hh-filter-empty');
+  if (visible === 0 && lastClaims.length > 0) {
+    if (!empty) {
+      empty = document.createElement('p');
+      empty.id = 'hh-filter-empty';
+      empty.className = 'hh-empty';
+      $('#hh-claims-list').appendChild(empty);
+    }
+    empty.textContent = `No ${LABELS[activeFilter]?.toLowerCase() || ''} claims in this passage.`;
+  } else if (empty) {
+    empty.remove();
+  }
+}
 
 function flashLabel(btn, label) {
   const orig = btn.dataset.label || btn.textContent;
   btn.dataset.label = orig;
   btn.textContent = label;
-  setTimeout(() => { btn.textContent = orig; }, 1400);
+  setTimeout(() => { btn.textContent = orig; }, 1300);
 }
 
-// ---------- the check ----------
+// Strict verification prompt — avoids hallucinating "verified" on post-cutoff / unconfirmed model specs
+const SYSTEM_PROMPT = `You are a rigorous fact-checker. Extract every standalone, checkable factual claim from the user's text and verify each against reliable, established knowledge.
 
-const SYSTEM_PROMPT = `You are a careful fact-checker. Extract every distinct, checkable factual claim from the user's text (skip opinions, advice and filler). Verify each against well-established knowledge.
+STRICT RULES:
+1. Skip personal preferences ("I'd pick X over Y"), opinions, greetings, and subjective filler.
+2. Mark "verified" ONLY when you are certain every detail (numbers, dates, names, versions) is accurate based on established pre-cutoff facts.
+3. Mark "false" when ANY part contradicts established facts, and provide a concise one-sentence "correction".
+4. Mark "unverifiable" whenever you are not 100% certain — including events from 2025 or later, unfamiliar or post-cutoff AI/software model versions (such as unconfirmed model numbers, release claims, or token pricing), live rankings, or statements phrased as "Company X claims/states..." whose underlying release or fact you cannot independently confirm. NEVER mark an unfamiliar version or recent claim "verified" just because it sounds plausible.
+5. Keep "explanation" direct and concise (1-2 plain sentences).
 
-Return a JSON object of the form {"claims": [ ... ]} where each item has:
-- "claim": the claim, rewritten as one self-contained sentence
-- "status": "verified" (correct), "unverifiable" (cannot be confirmed either way) or "false" (contradicted by reliable knowledge)
-- "confidence": integer 0-100, how sure you are of the verdict
-- "explanation": one or two plain sentences on why
-- "correction": for "false" only, the correct fact; otherwise null
-- "source": the kind of source a reader could check, e.g. "Encyclopaedia Britannica"
-- "category": a short topic such as "History" or "Science"
-
-Return at most 25 claims. If there are no factual claims, return {"claims": []}.`;
+Return JSON:
+{
+  "claims": [
+    {
+      "claim": "Self-contained factual statement",
+      "status": "verified" | "unverifiable" | "false",
+      "confidence": 0-100,
+      "explanation": "1-2 plain sentences",
+      "correction": "One corrected sentence when false, otherwise null",
+      "source": "Authoritative source name (e.g. Encyclopaedia Britannica, NASA)",
+      "sourceUrl": "Specific real URL you are certain exists, or null",
+      "category": "Short topic"
+    }
+  ]
+}
+Return at most 25 claims. If none exist, return {"claims": []}.`;
 
 async function analyze() {
   const text = textInput.value.trim();
-  if (!text) { showError('Paste a manuscript passage first.'); return; }
-  if (text.length < 15) { showError('Passage is too brief. Supply at least one complete sentence.'); return; }
+  if (!text) { showError('Paste or select a passage first.'); return; }
+  if (text.length < 15) { showError('Enter at least one complete factual sentence.'); return; }
   if (controller) return;
 
   controller = new AbortController();
@@ -179,16 +304,19 @@ async function analyze() {
   hide(resultsEl);
 
   try {
-    const claims = await requestClaims(text, controller.signal);
+    let claims = await requestClaims(text, controller.signal);
+    claims = await enrichSources(claims, controller.signal);
     lastText = text;
     lastClaims = claims;
     displayResults(claims, text);
     store.set({ lastText: text, lastClaims: claims, lastAt: Date.now() });
   } catch (err) {
     if (err && err.name === 'AbortError') {
-      if (controller && controller.signal.reason === 'timeout') showError('The check took too long. Try a shorter passage.', true);
+      if (controller && controller.signal.reason === 'timeout') {
+        showError('Check timed out. Try a shorter passage.', true);
+      }
     } else {
-      showError(err.message || 'Verification failed. Try again in a moment.', err.retryable !== false);
+      showError(err.message || 'Verification failed. Try again.', err.retryable !== false);
     }
   } finally {
     clearTimeout(timer);
@@ -223,7 +351,7 @@ async function requestClaims(text, signal) {
     } catch (err) {
       if (err.name === 'AbortError') throw err;
       if (attempt < 1) { await wait(1000, signal); continue; }
-      throw friendly(navigator.onLine === false ? 'You are offline. Reconnect and try again.' : 'Could not reach the verification service. Check your connection.');
+      throw friendly(navigator.onLine === false ? 'You are offline.' : 'Could not reach the verification service.');
     }
 
     if (res.ok) {
@@ -231,22 +359,59 @@ async function requestClaims(text, signal) {
       const parsed = parseJson(content);
       if (parsed) return normalize(parsed);
       if (attempt < 1) continue;
-      throw friendly('The verifier returned unreadable output. Retrying usually resolves it.');
+      throw friendly('Unreadable model output. Retry in a moment.');
     }
 
     const msg = (payload && payload.error) || '';
     const transient = res.status === 429 || res.status >= 500 || (res.status === 400 && /json/i.test(msg));
     if (transient && attempt < 1) {
       const ra = Math.min(parseInt(res.headers.get('retry-after') || '0', 10) || 0, 15);
-      await wait(ra ? ra * 1000 : 1500, signal);
+      await wait(ra ? ra * 1000 : 1400, signal);
       continue;
     }
-    if (res.status === 429) throw friendly('Rate limit reached. Pause a moment and run again.');
-    if (res.status === 413) throw friendly('That passage is too long to check in one pass.', false);
-    if (res.status === 403) throw friendly('The verification service refused this request. Update the extension and try again.', false);
-    if (res.status >= 500) throw friendly('The verification service is temporarily unavailable.');
+    if (res.status === 429) throw friendly('Rate limit reached. Wait a moment and try again.');
+    if (res.status === 413) throw friendly('Passage is too long to check in one pass.', false);
+    if (res.status >= 500) throw friendly('Verification service is temporarily unavailable.');
     throw friendly(msg || `Request failed (${res.status}).`);
   }
+}
+
+async function enrichSources(claims, signal) {
+  const targets = claims.filter(c => !c.sourceUrl || /google\.com\/search/i.test(c.sourceUrl)).slice(0, 4);
+  if (!targets.length) return claims;
+  await Promise.allSettled(targets.map(async c => {
+    if (signal && signal.aborted) return;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2600);
+    try {
+      const res = await fetch(SEARCH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: c.claim.slice(0, 130) }),
+        signal: ctrl.signal
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      const hit = (data && Array.isArray(data.results) ? data.results : [])
+        .map(r => safeUrl(r && r.url))
+        .find(Boolean);
+      if (hit) c.sourceUrl = hit;
+    } catch {
+      /* keep fallback */
+    } finally {
+      clearTimeout(timer);
+    }
+  }));
+  return claims;
+}
+
+function safeUrl(u) {
+  try {
+    const url = new URL(String(u || '').trim());
+    if (!/^https?:$/.test(url.protocol)) return null;
+    if (/(^|\.)example\.(com|org)$/.test(url.hostname)) return null;
+    return url.href;
+  } catch { return null; }
 }
 
 function friendly(message, retryable = true) {
@@ -265,9 +430,9 @@ function wait(ms, signal) {
 function parseJson(content) {
   if (content && typeof content === 'object') return content;
   const text = String(content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  try { return JSON.parse(text); } catch (e) { /* fall through */ }
+  try { return JSON.parse(text); } catch { /* fall through */ }
   const m = text.match(/[\[{][\s\S]*[\]}]/);
-  if (m) { try { return JSON.parse(m[0]); } catch (e) { /* fall through */ } }
+  if (m) { try { return JSON.parse(m[0]); } catch { /* fall through */ } }
   return null;
 }
 
@@ -291,101 +456,159 @@ function normalize(parsed) {
     .filter(c => c && (c.claim || c.text))
     .slice(0, 25)
     .map(c => {
+      const claim = String(c.claim || c.text).trim();
       const status = normalizeStatus(c.status);
+      const url = safeUrl(c.sourceUrl) || ('https://www.google.com/search?q=' + encodeURIComponent(claim.slice(0, 110)));
       return {
-        claim: String(c.claim || c.text).trim(),
+        claim,
         status,
         confidence: normalizeConfidence(c.confidence),
         explanation: c.explanation ? String(c.explanation) : '',
         correction: status === 'false' && c.correction && String(c.correction).toLowerCase() !== 'null' ? String(c.correction) : '',
-        source: c.source ? String(c.source) : '',
+        source: c.source && !/^(unknown|none|n\/a)/i.test(c.source) ? String(c.source) : 'Web search',
+        sourceUrl: url,
         category: c.category ? String(c.category) : ''
       };
     });
 }
 
-// ---------- rendering ----------
-
+// Rendering
 const ICONS = {
-  verified: '<svg class="hh-mark" viewBox="0 0 20 20" aria-hidden="true"><path class="frame" d="M6.2 2.6h7.6l3.6 3.6v7.6l-3.6 3.6H6.2l-3.6-3.6V6.2Z"/><path d="M6.4 10.3l2.4 2.4 4.8-5.2"/></svg>',
-  unverifiable: '<svg class="hh-mark" viewBox="0 0 20 20" aria-hidden="true"><path class="frame" d="M6.2 3.8H3.8v12.4h2.4M13.8 3.8h2.4v12.4h-2.4"/><path d="M8.3 7.8a1.9 1.9 0 1 1 2.5 1.8c-.5.2-.8.6-.8 1.2v.4"/><circle class="dot" cx="10" cy="13.8" r="0.95"/></svg>',
-  false: '<svg class="hh-mark" viewBox="0 0 20 20" aria-hidden="true"><path class="frame" d="M3.8 6.6V3.8h2.8M16.2 6.6V3.8h-2.8M3.8 13.4v2.8h2.8M16.2 13.4v2.8h-2.8"/><path d="M6.8 6.8l6.4 6.4M13.2 6.8l-6.4 6.4"/></svg>'
+  verified: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.4 6.3 11.7 13 4.6"/></svg>',
+  unverifiable: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M6.5 6.3a1.6 1.6 0 1 1 2.1 1.5c-.4.2-.6.5-.6 1v.3"/><circle cx="8" cy="11.4" r="0.75" fill="currentColor" stroke="none"/></svg>',
+  false: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>'
 };
-const LABELS = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Contradicted' };
+const LABELS = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'False' };
 const CLASS = { verified: 'verified', unverifiable: 'unverifiable', false: 'incorrect' };
 
-function scoreOf(claims) {
-  const v = claims.filter(c => c.status === 'verified').length;
-  return claims.length ? Math.round((v / claims.length) * 100) : 0;
+function verdictMeta(counts, total) {
+  if (total === 0 || (counts.verified === 0 && counts.false === 0 && counts.unverifiable > 0)) {
+    return { unverifiedOnly: true, score: 0, band: 'mid', label: 'Unverified', title: 'Needs outside verification' };
+  }
+  const score = Math.round((counts.verified / total) * 100);
+  const band = score >= 70 ? 'good' : score >= 40 ? 'mid' : 'bad';
+  const title = score >= 70 ? 'Mostly accurate' : score >= 40 ? 'Mixed \u2014 check flagged lines' : 'Mostly inaccurate';
+  return { unverifiedOnly: false, score, band, label: `${score}%`, title };
 }
 
 function displayResults(claims, text, { instant = false } = {}) {
   lastClaims = claims;
   lastText = text;
-  activeFilter = null;
-  $$('.hh-summary-badge').forEach(x => x.setAttribute('aria-pressed', 'false'));
+  activeFilter = 'all';
+  $$('.hh-ftab').forEach(b => {
+    const on = b.dataset.filter === 'all';
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+
+  const cleanSnippet = String(text || '').replace(/\s+/g, ' ').trim();
+  collapsedSnippet.textContent = cleanSnippet.length > 80 ? cleanSnippet.slice(0, 80) + '\u2026' : cleanSnippet;
+  setResultsLayout(true, false);
 
   const counts = { verified: 0, unverifiable: 0, false: 0 };
   claims.forEach(c => { counts[c.status]++; });
   const total = claims.length;
-  const score = scoreOf(claims);
-  const band = score >= 70 ? 'good' : score >= 40 ? 'mid' : 'bad';
+  const meta = verdictMeta(counts, total);
 
-  resultsEl.dataset.band = band;
-  const verdictEl = $('#hh-verdict-title');
-  if (verdictEl) {
-    verdictEl.textContent = score >= 70 ? 'Mostly holds up' : score >= 40 ? 'Read with care' : 'Largely unreliable';
-  }
+  resultsEl.dataset.band = meta.band;
+  $('#hh-verdict-title').textContent = meta.title;
+  $('#hh-verdict-sub').textContent = total
+    ? `${counts.verified} of ${total} ${total === 1 ? 'claim' : 'claims'} verified`
+    : 'No checkable factual claims found';
+
+  $('#hh-count-all').textContent = total;
   $('#hh-count-verified').textContent = counts.verified;
   $('#hh-count-unverifiable').textContent = counts.unverifiable;
   $('#hh-count-incorrect').textContent = counts.false;
 
-  const bdV = $('#hh-bd-verified');
-  const bdU = $('#hh-bd-unverifiable');
-  const bdF = $('#hh-bd-false');
-  if (bdV && bdU && bdF) {
-    bdV.style.width = total ? `${(counts.verified / total) * 100}%` : '0%';
-    bdU.style.width = total ? `${(counts.unverifiable / total) * 100}%` : '0%';
-    bdF.style.width = total ? `${(counts.false / total) * 100}%` : '0%';
-  }
+  $('#hh-bd-verified').style.width = total ? `${(counts.verified / total) * 100}%` : '0%';
+  $('#hh-bd-unverifiable').style.width = total ? `${(counts.unverifiable / total) * 100}%` : '0%';
+  $('#hh-bd-false').style.width = total ? `${(counts.false / total) * 100}%` : '0%';
 
   const list = $('#hh-claims-list');
   list.innerHTML = '';
   if (!claims.length) {
-    list.innerHTML = '<p class="hh-empty">No verifiable factual assertions found. Opinions and subjective filler are skipped.</p>';
+    list.innerHTML = '<p class="hh-empty">No checkable factual claims found. Opinions and preferences are skipped.</p>';
   }
+
   claims.forEach((c, i) => {
     const num = String(i + 1).padStart(2, '0');
     const card = document.createElement('article');
-    card.className = 'hh-claim-card ' + CLASS[c.status];
+    card.className = 'hh-claim-card';
     card.dataset.status = c.status;
-    card.style.setProperty('--i', Math.min(i, 12));
-    card.innerHTML = `
-      <div class="hh-claim-top">
-        <span class="hh-claim-idx">#${num}</span>
-        <span class="hh-stamp ${CLASS[c.status]}">${ICONS[c.status]}<span>${LABELS[c.status]}</span></span>
-        <span class="hh-claim-conf">${c.confidence}%</span>
-      </div>
-      <p class="hh-claim-text"></p>
-      ${c.correction ? '<p class="hh-claim-correction"><strong>Correction</strong><span></span></p>' : ''}
-      ${c.explanation ? '<details class="hh-claim-more"><summary>Examiner\u2019s note</summary><p></p></details>' : ''}
-      ${c.source ? '<p class="hh-claim-source"></p>' : ''}`;
-    card.querySelector('.hh-claim-text').textContent = c.claim;
-    if (c.correction) card.querySelector('.hh-claim-correction span').textContent = c.correction;
-    if (c.explanation) card.querySelector('.hh-claim-more p').textContent = c.explanation;
-    if (c.source) card.querySelector('.hh-claim-source').textContent = 'Cited: ' + c.source + (c.category ? ' \u00b7 ' + c.category : '');
+
+    const top = document.createElement('div');
+    top.className = 'hh-claim-top';
+    top.innerHTML = `
+      <span class="hh-claim-idx">${num}</span>
+      <span class="hh-status ${CLASS[c.status]}">${ICONS[c.status]}<span>${LABELS[c.status]}</span></span>
+      <span class="hh-claim-conf">${c.confidence}%</span>`;
+    card.appendChild(top);
+
+    const claimP = document.createElement('p');
+    claimP.className = 'hh-claim-text';
+    claimP.textContent = c.claim;
+    card.appendChild(claimP);
+
+    if (c.correction) {
+      const corr = document.createElement('p');
+      corr.className = 'hh-claim-correction';
+      const strong = document.createElement('strong');
+      strong.textContent = 'Correction:';
+      corr.appendChild(strong);
+      corr.appendChild(document.createTextNode(c.correction));
+      card.appendChild(corr);
+    }
+
+    if (c.explanation) {
+      const exp = document.createElement('p');
+      exp.className = 'hh-claim-explain';
+      exp.textContent = c.explanation;
+      card.appendChild(exp);
+    }
+
+    if (c.source) {
+      const src = document.createElement('p');
+      src.className = 'hh-claim-source';
+      const href = safeUrl(c.sourceUrl);
+      if (href) {
+        const a = document.createElement('a');
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = c.source;
+        src.appendChild(a);
+      } else {
+        src.textContent = c.source;
+      }
+      if (c.category) {
+        src.appendChild(document.createTextNode(' \u00b7 ' + c.category));
+      }
+      card.appendChild(src);
+    }
+
     list.appendChild(card);
   });
 
-  resultsEl.classList.toggle('instant', instant);
+  const trustEl = $('#hh-trust-value');
+  trustEl.classList.toggle('is-text', meta.unverifiedOnly);
   show(resultsEl);
-  countUp($('#hh-trust-value'), score, instant);
+  $('#hh-main').scrollTop = 0;
+
+  if (meta.unverifiedOnly) {
+    trustEl.textContent = 'Unverified';
+  } else {
+    countUp(trustEl, meta.score, instant);
+  }
 }
 
 function countUp(el, target, instant) {
-  if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = target + '%'; return; }
+  if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = target + '%';
+    return;
+  }
   const start = performance.now();
-  const dur = 700;
+  const dur = 500;
   function step(now) {
     const t = Math.min(1, (now - start) / dur);
     const eased = 1 - Math.pow(1 - t, 3);
@@ -396,19 +619,19 @@ function countUp(el, target, instant) {
 }
 
 function reportText() {
-  const score = scoreOf(lastClaims);
-  const lines = [`Hallucination Hunter Verification Dossier - Index ${score}% (${lastClaims.length} claims)`, ''];
+  const counts = { verified: 0, unverifiable: 0, false: 0 };
+  lastClaims.forEach(c => { counts[c.status]++; });
+  const meta = verdictMeta(counts, lastClaims.length);
+  const lines = [`Hallucination Hunter Fact-Check — ${meta.label} (${lastClaims.length} claims)`, ''];
   lastClaims.forEach((c, i) => {
     lines.push(`${String(i + 1).padStart(2, '0')}. [${LABELS[c.status]}, ${c.confidence}%] ${c.claim}`);
     if (c.correction) lines.push(`    Correction: ${c.correction}`);
     if (c.explanation) lines.push(`    ${c.explanation}`);
-    if (c.source) lines.push(`    Cited: ${c.source}`);
+    if (c.source) lines.push(`    Source: ${c.source}${safeUrl(c.sourceUrl) ? ' — ' + c.sourceUrl : ''}`);
   });
-  lines.push('', 'Verified via ' + APP_URL);
+  lines.push('', APP_URL);
   return lines.join('\n');
 }
-
-// ---------- state helpers ----------
 
 let stepTimer = 0;
 function setBusy(busy) {
@@ -422,7 +645,7 @@ function setBusy(busy) {
     stepTimer = setInterval(() => {
       i = Math.min(i + 1, STEPS.length - 1);
       $('#hh-loading-text').textContent = STEPS[i];
-    }, 3500);
+    }, 3200);
     show(loadingEl);
   } else {
     hide(loadingEl);

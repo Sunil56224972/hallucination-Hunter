@@ -1,12 +1,26 @@
-/* Hallucination Hunter - content script.
-   When you copy a passage, keep it so the popup can pre-fill it. Nothing else is read. */
+/* Hallucination Hunter — content script.
+   Captures copied passages or active selection on demand so the popup can pre-fill them. */
 
 (function () {
   'use strict';
 
   function alive() {
-    try { return !!(chrome.runtime && chrome.runtime.id); } catch (e) { return false; }
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch { return false; }
   }
+
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg && msg.type === 'hh-get-selection') {
+      const active = document.activeElement;
+      if (active && active.type === 'password') {
+        sendResponse({ text: '', host: location.hostname });
+        return;
+      }
+      sendResponse({
+        text: String(window.getSelection() || '').trim().slice(0, 20000),
+        host: location.hostname
+      });
+    }
+  });
 
   document.addEventListener('copy', () => {
     setTimeout(() => {
@@ -23,7 +37,9 @@
           autoRun: false
         });
         showToast();
-      } catch (e) { /* extension was reloaded; ignore */ }
+      } catch {
+        /* extension reloaded */
+      }
     }, 50);
   });
 
@@ -37,16 +53,14 @@
     toast.setAttribute('role', 'status');
     toast.innerHTML = `
       <div class="hh-toast-inner">
-        <svg width="18" height="18" viewBox="0 0 36 36" aria-hidden="true">
-          <rect width="36" height="36" rx="7" fill="#f4f0e8"/>
-          <rect x="2.75" y="2.75" width="30.5" height="30.5" rx="4.75" fill="none" stroke="#191714" stroke-opacity="0.2" stroke-width="0.9"/>
-          <path d="M9.5 11.5h17" stroke="#191714" stroke-width="2.2" stroke-linecap="round"/>
-          <path d="M9.5 17.5h7.2" stroke="#191714" stroke-width="2.2" stroke-linecap="round"/>
-          <path d="M20.2 17.5h6.3" stroke="#cf4a24" stroke-width="2.3" stroke-linecap="round"/>
-          <path d="M21.4 22.8l1.95-2.3 1.95 2.3" fill="none" stroke="#cf4a24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M9.5 24.5h10.2" stroke="#191714" stroke-width="2.2" stroke-linecap="round"/>
+        <svg width="16" height="16" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="6" fill="#282724"/>
+          <path d="M8.5 10.5h15" stroke="#f7f6f2" stroke-width="2.1" stroke-linecap="round"/>
+          <path d="M8.5 16h6.5" stroke="#f7f6f2" stroke-width="2.1" stroke-linecap="round"/>
+          <path d="M18.2 16h5.3" stroke="#e5643f" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M8.5 21.5h10.5" stroke="#f7f6f2" stroke-width="2.1" stroke-linecap="round"/>
         </svg>
-        <span>Passage staged &mdash; press <kbd>${shortcut}</kbd> to verify</span>
+        <span>Copied &mdash; press <kbd>${shortcut}</kbd> to fact-check</span>
         <button class="hh-toast-close" type="button" aria-label="Dismiss">&times;</button>
       </div>`;
     toast.querySelector('.hh-toast-close').addEventListener('click', () => toast.remove());
@@ -55,7 +69,7 @@
     setTimeout(() => {
       if (!toast.isConnected) return;
       toast.classList.add('hh-leaving');
-      setTimeout(() => toast.remove(), 220);
-    }, 3200);
+      setTimeout(() => toast.remove(), 200);
+    }, 3000);
   }
 })();
