@@ -21,6 +21,7 @@ chrome-extension/config.js
 *.pdf
 *.gif
 *.svg
+!assets/*.svg
 *.pptx
 *.docx
 package.json

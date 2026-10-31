@@ -197,9 +197,22 @@ function refreshInks() { $$('.mast-nav, .tabs-bar').forEach(moveInk); }
 window.addEventListener('resize', refreshInks);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshInks);
 
+let activeVT = null;
 function withTransition(update) {
-  if (REDUCED_MOTION || !document.startViewTransition || document.hidden) { update(); return; }
-  document.startViewTransition(update);
+  if (REDUCED_MOTION || !document.startViewTransition || document.hidden || activeVT) {
+    update();
+    return;
+  }
+  try {
+    const vt = document.startViewTransition(update);
+    activeVT = vt;
+    const clear = () => { if (activeVT === vt) activeVT = null; };
+    vt.finished?.then(clear, clear);
+    vt.ready?.catch(() => {});
+  } catch {
+    activeVT = null;
+    update();
+  }
 }
 
 // NAVIGATION
@@ -338,10 +351,19 @@ function setInputText(text) {
   try { text ? localStorage.setItem(DRAFT_KEY, text) : localStorage.removeItem(DRAFT_KEY); } catch {}
 }
 
+let recentWireRows = [];
+function syncWireVisibility() {
+  const wire = $('#recent-wire');
+  if (!wire) return;
+  const busyOrShowing = !processing.classList.contains('hidden') || !results.classList.contains('hidden');
+  wire.classList.toggle('hidden', busyOrShowing || recentWireRows.length === 0);
+}
+
 btnClear.addEventListener('click', () => {
   setInputText('');
   hideResults();
   processing.classList.add('hidden');
+  syncWireVisibility();
   input.focus();
 });
 
@@ -359,8 +381,8 @@ $('#btn-paste')?.addEventListener('click', async () => {
 if (!navigator.clipboard || !navigator.clipboard.readText) $('#btn-paste')?.remove();
 
 function hideResults() {
-  if (results.classList.contains('hidden')) return;
-  results.classList.add('hidden');
+  if (!results.classList.contains('hidden')) results.classList.add('hidden');
+  syncWireVisibility();
 }
 
 let exampleIdx = 0;
@@ -423,6 +445,7 @@ const PROD_ORIGIN = 'https://hallucination-hunter-five.vercel.app';
 const IS_VERCEL = /\.vercel\.app$/.test(location.hostname);
 const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 const API_URL = (IS_VERCEL ? '' : PROD_ORIGIN) + '/api/groq';
+const SEARCH_URL = (IS_VERCEL ? '' : PROD_ORIGIN) + '/api/search';
 const GROQ_MODEL = 'openai/gpt-oss-120b';
 const CALL_TIMEOUT_MS = 70000;
 const VERIFY_BATCH = 14;
@@ -622,7 +645,40 @@ function finalizeClaims(rawClaims, verifyResults, idOffset = 0) {
   });
 }
 
-async function findRealSources(claims) { return claims; }
+async function findRealSources(claims, signal) {
+  const targets = claims.filter(c => /google\.com\/search/i.test(c.sourceUrl || '')).slice(0, 6);
+  if (!targets.length) return claims;
+  await Promise.allSettled(targets.map(async c => {
+    if (signal && signal.aborted) return;
+    const ctrl = new AbortController();
+    const onAbort = () => ctrl.abort();
+    if (signal) signal.addEventListener('abort', onAbort, { once: true });
+    const timer = setTimeout(() => ctrl.abort(), 3200);
+    try {
+      const res = await fetch(SEARCH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: c.text.slice(0, 140) }),
+        signal: ctrl.signal
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      const hit = (data && Array.isArray(data.results) ? data.results : [])
+        .map(r => safeUrl(r && r.url))
+        .find(u => u && !/google\.com\/search/i.test(u));
+      if (hit) {
+        c.sourceUrl = hit;
+        if (c.source === 'Web search') c.source = domainOf(hit) || c.source;
+      }
+    } catch {
+      /* keep fallback URL */
+    } finally {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', onAbort);
+    }
+  }));
+  return claims;
+}
 
 // PROGRESS
 const progress = (() => {
@@ -703,6 +759,7 @@ async function runAnalysis(text) {
   hideResults();
   hideTip();
   processing.classList.remove('hidden');
+  syncWireVisibility();
   Object.entries(STEP_COPY).forEach(([id, copy]) => { setStep(id, 'idle'); setStepNote(id, copy); });
   progress.reset();
   setBusy(true);
@@ -725,6 +782,7 @@ async function runAnalysis(text) {
     if (totalClaims === 0) {
       showToast('No verifiable factual assertions found. Try prose with concrete dates, figures, or names.', 'info');
       processing.classList.add('hidden');
+      syncWireVisibility();
       return;
     }
 
@@ -746,12 +804,13 @@ async function runAnalysis(text) {
 
     setStep('ps-verify', 'active');
     progress.span(92, 100);
+    all = await findRealSources(all, signal);
     currentClaims = all;
     currentText = parts.join('\n\n---\n\n');
-    await delay(REDUCED_MOTION ? 0 : 220);
+    await delay(REDUCED_MOTION ? 0 : 180);
     setStep('ps-verify', 'done');
     progress.jump(100);
-    await delay(REDUCED_MOTION ? 0 : 240);
+    await delay(REDUCED_MOTION ? 0 : 200);
 
     processing.classList.add('hidden');
     displayResults(currentText, all);
@@ -766,6 +825,7 @@ async function runAnalysis(text) {
   } catch (err) {
     progress.stop();
     processing.classList.add('hidden');
+    syncWireVisibility();
     if (err.cancelled) {
       showToast('Check aborted', 'info');
     } else {
@@ -795,6 +855,7 @@ function displayResults(originalText, claims) {
   const trustScore = scoreOf(claims);
 
   results.classList.remove('hidden');
+  syncWireVisibility();
   results.classList.remove('is-in');
   void results.offsetWidth;
   results.classList.add('is-in');
@@ -918,7 +979,7 @@ function buildAnnotated(originalText, claims) {
 }
 
 function showTip(c, x, y) {
-  const colors = { verified: 'var(--green)', unverifiable: 'var(--amber)', false: 'var(--red)' };
+  const colors = { verified: 'var(--tip-green)', unverifiable: 'var(--tip-amber)', false: 'var(--tip-red)' };
   tip.querySelector('.tip-status').textContent = VERDICT_LABELS[c.status];
   tip.querySelector('.tip-status').style.color = colors[c.status];
   tip.querySelector('.tip-conf').textContent = c.confidence + '% certainty';
@@ -950,6 +1011,8 @@ function claimCardHTML(c, threshold) {
   const srcLink = href
     ? `<a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.source)}</a>`
     : `<span>${escapeHtml(c.source || 'No source')}</span>`;
+  const origTrim = String(c.originalText || '').trim();
+  const showQuote = origTrim && origTrim.toLowerCase() !== String(c.text || '').trim().toLowerCase();
 
   return `
     <div class="claim-card-top">
@@ -978,8 +1041,9 @@ function claimCardHTML(c, threshold) {
       </div>
       <div class="claim-detail" hidden>
         <div class="claim-detail-inner">
+          <span class="detail-kicker">Examiner&rsquo;s note</span>
           <div class="claim-explain">${escapeHtml(c.explanation || '')}</div>
-          <div class="claim-src">${LINK_ICON}${srcLink}${host ? `<span class="src-domain">${escapeHtml(host)}</span>` : ''}</div>
+          ${showQuote ? `<div class="claim-quote">&ldquo;${escapeHtml(origTrim)}&rdquo;</div>` : ''}
         </div>
       </div>
     </div>`;
@@ -1524,24 +1588,87 @@ async function checkDbStatus() {
   setMastheadSyncState(true, a.count ?? 0);
 }
 
-// DASHBOARD - running totals in the desk ledger
+// DASHBOARD - running totals in the desk ledger + Recent on the Wire strip
 async function loadDashboardStats() {
-  const { data: analyses, error } = await db.from('analyses').select('trust_score, verified_count, total_claims');
+  const { data: analyses, error, count } = await db
+    .from('analyses')
+    .select('id, input_text, trust_score, verified_count, unverifiable_count, false_count, total_claims, created_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .limit(200);
   if (error || !analyses) {
     setMastheadSyncState(false);
     return;
   }
-  const totalAnalyses = analyses.length;
-  const totalClaims = analyses.reduce((s, a) => s + (a.total_claims || 0), 0);
-  const totalVerified = analyses.reduce((s, a) => s + (a.verified_count || 0), 0);
-  const avgScore = totalAnalyses ? Math.round(analyses.reduce((s, a) => s + (a.trust_score || 0), 0) / totalAnalyses) : 0;
+  const visible = analyses.filter(a => !pendingDeletes.has(a.id));
+  if (!historyCache) historyCache = visible.slice(0, 100);
+  const totalAnalyses = count ?? visible.length;
+  const sampleCount = visible.length;
+  const totalClaims = visible.reduce((s, a) => s + (a.total_claims || 0), 0);
+  const totalVerified = visible.reduce((s, a) => s + (a.verified_count || 0), 0);
+  const avgScore = sampleCount ? Math.round(visible.reduce((s, a) => s + (a.trust_score || 0), 0) / sampleCount) : 0;
   const accuracy = totalClaims ? Math.round((totalVerified / totalClaims) * 100) : 0;
   animateNum('dash-total', totalAnalyses);
   animateNum('dash-claims', totalClaims);
   animateNumWithSuffix($('#dash-avg-score'), avgScore, '%');
   animateNumWithSuffix($('#dash-accuracy'), accuracy, '%');
   setMastheadSyncState(true, totalAnalyses);
+  renderRecentWire(visible.slice(0, 4), totalAnalyses);
 }
+
+function renderRecentWire(rows, totalCount) {
+  recentWireRows = rows || [];
+  const wireList = $('#wire-list');
+  const wireAllLabel = $('#wire-all-label');
+  if (wireAllLabel) {
+    wireAllLabel.textContent = totalCount ? `Full archive (${totalCount})` : 'Full archive';
+  }
+  if (!wireList) return;
+  wireList.innerHTML = '';
+  recentWireRows.forEach((a, idx) => {
+    const band = bandOf(a.trust_score ?? 0);
+    const raw = String(a.input_text || '').replace(/\s+/g, ' ').trim();
+    const excerpt = raw.length > 135 ? raw.slice(0, 135) + '\u2026' : (raw || 'Untitled passage');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'wire-row';
+    btn.innerHTML = `
+      <span class="wire-idx">${String(idx + 1).padStart(2, '0')}</span>
+      <span class="wire-score ${band}">${a.trust_score ?? 0}%</span>
+      <span class="wire-excerpt">${escapeHtml(excerpt)}</span>
+      <span class="wire-tally" aria-label="Verdict counts">
+        <span class="history-stat v" title="Verified">${a.verified_count ?? 0}V</span>
+        <span class="history-stat u" title="Unverifiable">${a.unverifiable_count ?? 0}U</span>
+        <span class="history-stat f" title="Contradicted">${a.false_count ?? 0}C</span>
+      </span>
+      <span class="wire-time">${relativeDate(a.created_at)}</span>
+      <span class="wire-arrow" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5l5 5-5 5"/></svg>
+      </span>`;
+    btn.addEventListener('click', () => openWireEntry(a));
+    wireList.appendChild(btn);
+  });
+  syncWireVisibility();
+}
+
+async function openWireEntry(analysis) {
+  const { data: rows, error } = await db
+    .from('claims')
+    .select('*')
+    .eq('analysis_id', analysis.id)
+    .order('created_at', { ascending: true });
+  if (error || !rows || !rows.length) {
+    showToast('Could not retrieve claims for that archived dossier', 'error');
+    return;
+  }
+  const claims = rows.map(rowToClaim);
+  const text = analysis.input_text || '';
+  currentClaims = claims;
+  currentText = text;
+  setInputText(text);
+  displayResults(text, claims);
+}
+
+$('#btn-wire-all')?.addEventListener('click', () => switchView('history'));
 
 function animateNumWithSuffix(el, target, suffix) {
   if (!el) return;

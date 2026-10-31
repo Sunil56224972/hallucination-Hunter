@@ -37,7 +37,12 @@ const store = {
   }
 };
 
-const STEPS = ['Reading the text...', 'Pulling out the factual claims...', 'Checking each claim...', 'Writing up the verdicts...'];
+const STEPS = [
+  'Isolating factual assertions\u2026',
+  'Cross-examining primary references\u2026',
+  'Weighing certainty & citations\u2026',
+  'Filing verification dossier\u2026'
+];
 
 // ---------- startup ----------
 
@@ -58,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (captured.length > 10 && age < CAPTURE_MAX_AGE) {
     setText(captured);
-    autoDetectEl.textContent = data.capturedFrom ? `Filled in from ${data.capturedFrom}.` : 'Filled in from the text you copied.';
+    autoDetectEl.textContent = data.capturedFrom ? `Staged passage from ${data.capturedFrom}.` : 'Staged passage from clipboard.';
     autoDetectEl.hidden = false;
     await store.set({ capturedText: '', autoRun: false });
     if (data.autoRun) { analyze(); return; }
@@ -163,8 +168,8 @@ Return at most 25 claims. If there are no factual claims, return {"claims": []}.
 
 async function analyze() {
   const text = textInput.value.trim();
-  if (!text) { showError('Paste some text first.'); return; }
-  if (text.length < 15) { showError('That is a bit short. Give it at least one full sentence.'); return; }
+  if (!text) { showError('Paste a manuscript passage first.'); return; }
+  if (text.length < 15) { showError('Passage is too brief. Supply at least one complete sentence.'); return; }
   if (controller) return;
 
   controller = new AbortController();
@@ -183,7 +188,7 @@ async function analyze() {
     if (err && err.name === 'AbortError') {
       if (controller && controller.signal.reason === 'timeout') showError('The check took too long. Try a shorter passage.', true);
     } else {
-      showError(err.message || 'The check failed. Try again in a moment.', err.retryable !== false);
+      showError(err.message || 'Verification failed. Try again in a moment.', err.retryable !== false);
     }
   } finally {
     clearTimeout(timer);
@@ -218,7 +223,7 @@ async function requestClaims(text, signal) {
     } catch (err) {
       if (err.name === 'AbortError') throw err;
       if (attempt < 1) { await wait(1000, signal); continue; }
-      throw friendly(navigator.onLine === false ? 'You are offline. Reconnect and try again.' : 'Could not reach the checking service. Check your connection.');
+      throw friendly(navigator.onLine === false ? 'You are offline. Reconnect and try again.' : 'Could not reach the verification service. Check your connection.');
     }
 
     if (res.ok) {
@@ -226,7 +231,7 @@ async function requestClaims(text, signal) {
       const parsed = parseJson(content);
       if (parsed) return normalize(parsed);
       if (attempt < 1) continue;
-      throw friendly('The checker returned something unreadable. Trying again usually works.');
+      throw friendly('The verifier returned unreadable output. Retrying usually resolves it.');
     }
 
     const msg = (payload && payload.error) || '';
@@ -236,10 +241,10 @@ async function requestClaims(text, signal) {
       await wait(ra ? ra * 1000 : 1500, signal);
       continue;
     }
-    if (res.status === 429) throw friendly('Too many checks in a short time. Wait a minute and try again.');
-    if (res.status === 413) throw friendly('That text is too long to check in one go.', false);
-    if (res.status === 403) throw friendly('The checking service refused this request. Update the extension and try again.', false);
-    if (res.status >= 500) throw friendly('The checking service is having trouble right now. Try again in a minute.');
+    if (res.status === 429) throw friendly('Rate limit reached. Pause a moment and run again.');
+    if (res.status === 413) throw friendly('That passage is too long to check in one pass.', false);
+    if (res.status === 403) throw friendly('The verification service refused this request. Update the extension and try again.', false);
+    if (res.status >= 500) throw friendly('The verification service is temporarily unavailable.');
     throw friendly(msg || `Request failed (${res.status}).`);
   }
 }
@@ -302,11 +307,11 @@ function normalize(parsed) {
 // ---------- rendering ----------
 
 const ICONS = {
-  verified: '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>',
-  unverifiable: '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7.3 7.6a2.8 2.8 0 1 1 3.8 2.6c-.7.3-1.1.9-1.1 1.6v.3M10 15.4h.01"/></svg>',
-  false: '<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>'
+  verified: '<svg class="hh-mark" viewBox="0 0 20 20" aria-hidden="true"><path class="frame" d="M6.2 2.6h7.6l3.6 3.6v7.6l-3.6 3.6H6.2l-3.6-3.6V6.2Z"/><path d="M6.4 10.3l2.4 2.4 4.8-5.2"/></svg>',
+  unverifiable: '<svg class="hh-mark" viewBox="0 0 20 20" aria-hidden="true"><path class="frame" d="M6.2 3.8H3.8v12.4h2.4M13.8 3.8h2.4v12.4h-2.4"/><path d="M8.3 7.8a1.9 1.9 0 1 1 2.5 1.8c-.5.2-.8.6-.8 1.2v.4"/><circle class="dot" cx="10" cy="13.8" r="0.95"/></svg>',
+  false: '<svg class="hh-mark" viewBox="0 0 20 20" aria-hidden="true"><path class="frame" d="M3.8 6.6V3.8h2.8M16.2 6.6V3.8h-2.8M3.8 13.4v2.8h2.8M16.2 13.4v2.8h-2.8"/><path d="M6.8 6.8l6.4 6.4M13.2 6.8l-6.4 6.4"/></svg>'
 };
-const LABELS = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Wrong' };
+const LABELS = { verified: 'Verified', unverifiable: 'Unverifiable', false: 'Contradicted' };
 const CLASS = { verified: 'verified', unverifiable: 'unverifiable', false: 'incorrect' };
 
 function scoreOf(claims) {
@@ -322,46 +327,58 @@ function displayResults(claims, text, { instant = false } = {}) {
 
   const counts = { verified: 0, unverifiable: 0, false: 0 };
   claims.forEach(c => { counts[c.status]++; });
+  const total = claims.length;
   const score = scoreOf(claims);
   const band = score >= 70 ? 'good' : score >= 40 ? 'mid' : 'bad';
 
   resultsEl.dataset.band = band;
+  const verdictEl = $('#hh-verdict-title');
+  if (verdictEl) {
+    verdictEl.textContent = score >= 70 ? 'Mostly holds up' : score >= 40 ? 'Read with care' : 'Largely unreliable';
+  }
   $('#hh-count-verified').textContent = counts.verified;
   $('#hh-count-unverifiable').textContent = counts.unverifiable;
   $('#hh-count-incorrect').textContent = counts.false;
 
+  const bdV = $('#hh-bd-verified');
+  const bdU = $('#hh-bd-unverifiable');
+  const bdF = $('#hh-bd-false');
+  if (bdV && bdU && bdF) {
+    bdV.style.width = total ? `${(counts.verified / total) * 100}%` : '0%';
+    bdU.style.width = total ? `${(counts.unverifiable / total) * 100}%` : '0%';
+    bdF.style.width = total ? `${(counts.false / total) * 100}%` : '0%';
+  }
+
   const list = $('#hh-claims-list');
   list.innerHTML = '';
   if (!claims.length) {
-    list.innerHTML = '<p class="hh-empty">No checkable facts found. Opinions and advice are skipped.</p>';
+    list.innerHTML = '<p class="hh-empty">No verifiable factual assertions found. Opinions and subjective filler are skipped.</p>';
   }
   claims.forEach((c, i) => {
+    const num = String(i + 1).padStart(2, '0');
     const card = document.createElement('article');
     card.className = 'hh-claim-card ' + CLASS[c.status];
     card.dataset.status = c.status;
     card.style.setProperty('--i', Math.min(i, 12));
     card.innerHTML = `
       <div class="hh-claim-top">
-        <span class="hh-claim-badge ${CLASS[c.status]}">${ICONS[c.status]}</span>
-        <span class="hh-claim-status ${CLASS[c.status]}">${LABELS[c.status]}</span>
+        <span class="hh-claim-idx">#${num}</span>
+        <span class="hh-stamp ${CLASS[c.status]}">${ICONS[c.status]}<span>${LABELS[c.status]}</span></span>
         <span class="hh-claim-conf">${c.confidence}%</span>
       </div>
       <p class="hh-claim-text"></p>
-      ${c.correction ? '<p class="hh-claim-correction"><strong>Actually:</strong> <span></span></p>' : ''}
-      ${c.explanation ? '<details class="hh-claim-more"><summary>Why</summary><p></p></details>' : ''}
+      ${c.correction ? '<p class="hh-claim-correction"><strong>Correction</strong><span></span></p>' : ''}
+      ${c.explanation ? '<details class="hh-claim-more"><summary>Examiner\u2019s note</summary><p></p></details>' : ''}
       ${c.source ? '<p class="hh-claim-source"></p>' : ''}`;
     card.querySelector('.hh-claim-text').textContent = c.claim;
     if (c.correction) card.querySelector('.hh-claim-correction span').textContent = c.correction;
     if (c.explanation) card.querySelector('.hh-claim-more p').textContent = c.explanation;
-    if (c.source) card.querySelector('.hh-claim-source').textContent = 'Source: ' + c.source + (c.category ? ' \u00b7 ' + c.category : '');
+    if (c.source) card.querySelector('.hh-claim-source').textContent = 'Cited: ' + c.source + (c.category ? ' \u00b7 ' + c.category : '');
     list.appendChild(card);
   });
 
   resultsEl.classList.toggle('instant', instant);
   show(resultsEl);
-  const fill = $('#hh-trust-fill');
-  fill.style.transform = 'scaleX(0)';
-  requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.transform = `scaleX(${score / 100})`; }));
   countUp($('#hh-trust-value'), score, instant);
 }
 
@@ -380,14 +397,14 @@ function countUp(el, target, instant) {
 
 function reportText() {
   const score = scoreOf(lastClaims);
-  const lines = [`Hallucination Hunter report - trust score ${score}% (${lastClaims.length} claims)`, ''];
+  const lines = [`Hallucination Hunter Verification Dossier - Index ${score}% (${lastClaims.length} claims)`, ''];
   lastClaims.forEach((c, i) => {
-    lines.push(`${i + 1}. [${LABELS[c.status]}, ${c.confidence}%] ${c.claim}`);
-    if (c.correction) lines.push(`   Actually: ${c.correction}`);
-    if (c.explanation) lines.push(`   ${c.explanation}`);
-    if (c.source) lines.push(`   Source: ${c.source}`);
+    lines.push(`${String(i + 1).padStart(2, '0')}. [${LABELS[c.status]}, ${c.confidence}%] ${c.claim}`);
+    if (c.correction) lines.push(`    Correction: ${c.correction}`);
+    if (c.explanation) lines.push(`    ${c.explanation}`);
+    if (c.source) lines.push(`    Cited: ${c.source}`);
   });
-  lines.push('', 'Checked with ' + APP_URL);
+  lines.push('', 'Verified via ' + APP_URL);
   return lines.join('\n');
 }
 

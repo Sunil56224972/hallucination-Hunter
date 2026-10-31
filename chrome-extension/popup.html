@@ -5,19 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <title>Hallucination Hunter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <header class="hh-header">
     <div class="hh-logo">
-      <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
-        <rect class="hh-logo-bg" width="64" height="64" rx="15" fill="#1c1a17"/>
-        <rect x="14" y="18" width="36" height="5" rx="2.5" fill="#f3efe6"/>
-        <rect x="14" y="29.5" width="12" height="5" rx="2.5" fill="#f3efe6"/>
-        <rect x="29" y="29.5" width="21" height="5" rx="2.5" fill="#d4502a"/>
-        <rect x="14" y="41" width="24" height="5" rx="2.5" fill="#f3efe6"/>
+      <svg class="hh-brand-mark" width="26" height="26" viewBox="0 0 36 36" aria-hidden="true">
+        <rect class="hh-logo-bg" width="36" height="36" rx="7" fill="#191714"/>
+        <rect x="2.75" y="2.75" width="30.5" height="30.5" rx="4.75" fill="none" stroke="#f4f0e8" stroke-opacity="0.18" stroke-width="0.9"/>
+        <path d="M9.5 11.5h17" stroke="#f4f0e8" stroke-width="2.1" stroke-linecap="round"/>
+        <path d="M9.5 17.5h7.2" stroke="#f4f0e8" stroke-width="2.1" stroke-linecap="round"/>
+        <path d="M20.2 17.5h6.3" stroke="#cf4a24" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M21.4 22.8l1.95-2.3 1.95 2.3" fill="none" stroke="#cf4a24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.5 24.5h10.2" stroke="#f4f0e8" stroke-width="2.1" stroke-linecap="round"/>
       </svg>
-      <span class="hh-title">Hallucination Hunter</span>
+      <div class="hh-lockup">
+        <span class="hh-title">Hallucination Hunter</span>
+        <span class="hh-subtitle">Verification Desk</span>
+      </div>
     </div>
     <span class="hh-badge" id="hh-version">v1.1</span>
   </header>
@@ -25,49 +33,69 @@
   <main>
     <div class="hh-input-area">
       <div class="hh-label-row">
-        <label class="hh-label" for="hh-text-input">Text to check</label>
+        <label class="hh-label" for="hh-text-input">Manuscript Copy</label>
         <span class="hh-count" id="hh-count">0 / 20,000</span>
       </div>
-      <textarea id="hh-text-input" placeholder="Paste an AI answer here. Or select text on any page, right-click and choose Check with Hallucination Hunter." rows="5" maxlength="20000"></textarea>
+      <div class="hh-sheet">
+        <textarea id="hh-text-input" placeholder="Paste an AI passage here, or highlight text on any page and right-click &rarr; Check with Hallucination Hunter." rows="5" spellcheck="false" maxlength="20000"></textarea>
+      </div>
       <div id="hh-auto-detect" class="hh-auto-detect" hidden></div>
       <div class="hh-input-actions">
-        <span class="hh-hint"><kbd>Ctrl</kbd> <kbd>Enter</kbd></span>
+        <span class="hh-hint"><kbd>Ctrl</kbd> <kbd>&crarr;</kbd></span>
         <button id="hh-clear-btn" class="hh-btn-secondary" type="button">Clear</button>
-        <button id="hh-analyze-btn" class="hh-btn-primary" type="button"><span class="hh-btn-label">Check claims</span><span class="hh-btn-spin" aria-hidden="true"></span></button>
+        <button id="hh-analyze-btn" class="hh-btn-primary" type="button">
+          <span class="hh-btn-label">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M13.8 3.2 16.8 6.2 7.4 15.6 3.2 16.8 4.4 12.6Z"/>
+              <path d="m11.5 5.5 3 3"/>
+            </svg>
+            <span>Check claims</span>
+          </span>
+          <span class="hh-btn-spin" aria-hidden="true"></span>
+        </button>
       </div>
     </div>
 
     <div id="hh-loading" class="hh-loading" hidden>
       <div class="hh-progress"><span></span></div>
       <div class="hh-loading-row">
-        <span id="hh-loading-text">Reading the text...</span>
-        <button id="hh-cancel-btn" class="hh-link-btn" type="button">Cancel</button>
+        <span id="hh-loading-text">Isolating factual assertions&hellip;</span>
+        <button id="hh-cancel-btn" class="hh-link-btn" type="button">Abort</button>
       </div>
     </div>
 
     <div id="hh-error" class="hh-error" role="alert" hidden>
       <span id="hh-error-text"></span>
-      <button id="hh-retry-btn" class="hh-link-btn" type="button" hidden>Try again</button>
+      <button id="hh-retry-btn" class="hh-link-btn" type="button" hidden>Retry</button>
     </div>
 
     <section id="hh-results" class="hh-results" hidden aria-live="polite">
-      <div class="hh-trust-bar">
-        <div class="hh-trust-label">Trust score</div>
-        <div class="hh-trust-track"><div id="hh-trust-fill" class="hh-trust-fill"></div></div>
-        <div id="hh-trust-value" class="hh-trust-value">0%</div>
+      <div class="hh-dossier">
+        <div class="hh-trust-bar">
+          <div>
+            <div class="hh-kicker">Verification Index</div>
+            <div class="hh-trust-label" id="hh-verdict-title">Mostly holds up</div>
+          </div>
+          <div id="hh-trust-value" class="hh-trust-value">0%</div>
+        </div>
+        <div class="hh-trust-track" aria-hidden="true">
+          <span id="hh-bd-verified" class="hh-bd hh-bd-v" style="width:0%"></span>
+          <span id="hh-bd-unverifiable" class="hh-bd hh-bd-u" style="width:0%"></span>
+          <span id="hh-bd-false" class="hh-bd hh-bd-f" style="width:0%"></span>
+        </div>
       </div>
 
-      <div class="hh-summary">
+      <div class="hh-summary" role="group" aria-label="Filter claims by verdict">
         <button type="button" class="hh-summary-badge hh-verified" data-filter="verified"><span id="hh-count-verified">0</span> verified</button>
         <button type="button" class="hh-summary-badge hh-unverifiable" data-filter="unverifiable"><span id="hh-count-unverifiable">0</span> unverifiable</button>
-        <button type="button" class="hh-summary-badge hh-incorrect" data-filter="false"><span id="hh-count-incorrect">0</span> wrong</button>
+        <button type="button" class="hh-summary-badge hh-incorrect" data-filter="false"><span id="hh-count-incorrect">0</span> contradicted</button>
       </div>
 
       <div id="hh-claims-list" class="hh-claims-list"></div>
 
       <div class="hh-result-actions">
-        <button id="hh-copy-btn" class="hh-btn-outline" type="button">Copy report</button>
-        <button id="hh-open-btn" class="hh-btn-outline" type="button">Open in full app</button>
+        <button id="hh-copy-btn" class="hh-btn-outline" type="button">Copy dossier</button>
+        <button id="hh-open-btn" class="hh-btn-outline" type="button">Open Check Desk &nearr;</button>
       </div>
     </section>
   </main>

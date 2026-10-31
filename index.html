@@ -28,6 +28,7 @@
       } catch (e) {}
     })();
   </script>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -238,6 +239,20 @@
           </div>
         </div>
 
+        <section class="wire-section hidden" id="recent-wire" aria-label="Recent archived dossiers">
+          <div class="wire-head">
+            <div class="wire-title-group">
+              <span class="wire-kicker">Recent on the Wire</span>
+              <span class="wire-sub">Latest verified manuscripts filed in the ledger &mdash; select any row to inspect its galley proof</span>
+            </div>
+            <button type="button" class="wire-all-btn" id="btn-wire-all">
+              <span id="wire-all-label">Full archive</span>
+              <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 10h11M11 5.5 15.5 10 11 14.5"/></svg>
+            </button>
+          </div>
+          <div class="wire-list" id="wire-list"></div>
+        </section>
+
         <div class="processing hidden" id="processing" aria-live="polite">
           <div class="process-card">
             <div class="process-step active" id="ps-extract">
@@ -273,7 +288,7 @@
                     <circle cx="24" cy="24" r="19.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-dasharray="122.52" stroke-dashoffset="122.52" stroke-linecap="butt" id="score-arc" transform="rotate(-90 24 24)"/>
                   </svg>
                   <div class="donut-center">
-                    <span class="donut-val" id="score-val">0</span><span class="donut-pct">%</span>
+                    <span class="donut-reading"><span class="donut-val" id="score-val">0</span><span class="donut-pct">%</span></span>
                   </div>
                 </div>
                 <div class="score-copy">
