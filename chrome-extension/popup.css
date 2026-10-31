@@ -106,11 +106,6 @@
   display: none !important;
 }
 
-html {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
-}
-
 *::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -130,7 +125,7 @@ html {
 
 body {
   width: 380px;
-  max-height: 580px;
+  max-height: 560px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -240,7 +235,7 @@ kbd {
 .hh-main {
   flex: 1 1 auto;
   min-height: 0;
-  max-height: 502px;
+  max-height: 484px;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px 14px;

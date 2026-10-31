@@ -101,8 +101,6 @@
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
 }
 
 body {
@@ -122,6 +120,11 @@ body.no-scroll {
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;
+}
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
@@ -331,6 +334,8 @@ html.hh-splash-out .splash {
   font-weight: 500;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 .sync-indicator:hover {
@@ -362,6 +367,8 @@ html.hh-splash-out .splash {
   border-radius: var(--radius-sm);
   color: var(--ink-3);
   font-size: 12.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .search-box:hover {
@@ -377,6 +384,7 @@ html.hh-splash-out .splash {
   padding: 2px 5px;
   font-size: 10.5px;
   line-height: 1;
+  white-space: nowrap;
   color: var(--ink-3);
   background: var(--bg-subtle);
   border: 1px solid var(--border);
@@ -422,6 +430,8 @@ html.hh-splash-out .splash {
   font-size: 12.5px;
   font-weight: 500;
   color: var(--ink-3);
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 .mast-gh:hover {

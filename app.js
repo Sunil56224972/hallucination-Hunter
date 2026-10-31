@@ -1010,12 +1010,13 @@ function claimCardHTML(c, threshold) {
   const srcLink = href
     ? `<a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.source)}</a>`
     : `<span>${escapeHtml(c.source || 'No source')}</span>`;
+  const cat = c.category && c.category !== 'General' ? `<span class="claim-tag">${escapeHtml(c.category)}</span>` : '';
 
   return `
     <div class="claim-card-top">
       <span class="claim-idx">${num}</span>
       <span class="verdict-stamp ${c.status}">${VERDICT_ICONS[c.status]}<span>${VERDICT_LABELS[c.status]}</span></span>
-      <span class="claim-tag">${escapeHtml(c.category || 'General')}</span>
+      ${cat}
       <div class="claim-meta-right">
         <span class="threshold-badge"${below ? '' : ' hidden'}>Below ${threshold}%</span>
         <span class="claim-conf" title="Model confidence">${c.confidence}%</span>
