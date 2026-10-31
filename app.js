@@ -32,11 +32,11 @@ function createRestFallbackDb(baseUrl, apiKey) {
         return builder;
       },
       eq(col, val) {
-        if (val !== undefined && val !== null) filters.push(${encodeURIComponent(col)}=eq.);
+        if (val !== undefined && val !== null) filters.push(`${encodeURIComponent(col)}=eq.${encodeURIComponent(val)}`);
         return builder;
       },
       order(col, { ascending = true } = {}) {
-        orderParam = ${encodeURIComponent(col)}.;
+        orderParam = `${encodeURIComponent(col)}.${ascending ? 'asc' : 'desc'}`;
         return builder;
       },
       limit(n) {
@@ -55,17 +55,17 @@ function createRestFallbackDb(baseUrl, apiKey) {
     async function execute() {
       try {
         const params = [];
-        if (method === 'GET' || selectCols) params.push(select=);
+        if (method === 'GET' || selectCols) params.push(`select=${encodeURIComponent(selectCols)}`);
         filters.forEach(f => params.push(f));
-        if (orderParam) params.push(order=);
-        if (limitParam != null) params.push(limit=);
-        const url = ${baseUrl}/rest/v1/;
+        if (orderParam) params.push(`order=${orderParam}`);
+        if (limitParam != null) params.push(`limit=${limitParam}`);
+        const url = `${baseUrl}/rest/v1/${table}${params.length ? '?' + params.join('&') : ''}`;
         const prefer = [];
         if (opts.count === 'exact') prefer.push('count=exact');
         if (method === 'POST') prefer.push('return=representation');
         const headers = {
           apikey: apiKey,
-          Authorization: Bearer ,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         };
         if (prefer.length) headers.Prefer = prefer.join(',');
@@ -84,7 +84,7 @@ function createRestFallbackDb(baseUrl, apiKey) {
         }
         if (!res.ok) {
           const errText = await res.text().catch(() => res.statusText);
-          return { data: null, error: { message: errText || HTTP  }, count };
+          return { data: null, error: { message: errText || `HTTP ${res.status}` }, count };
         }
         if (opts.head || method === 'DELETE' || res.status === 204) {
           return { data: null, error: null, count };
