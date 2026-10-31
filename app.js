@@ -5,15 +5,102 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // If the Supabase script is blocked (ad blocker, offline) the checker still works;
 // storage calls resolve with an error instead of throwing at load time.
-function unavailableDb() {
-  const result = Promise.resolve({ data: null, error: { message: 'Storage is unavailable' }, count: null });
-  const chain = new Proxy(function () {}, {
-    get: (_t, prop) => (prop === 'then' ? result.then.bind(result) : () => chain),
-    apply: () => chain
-  });
-  return { from: () => chain, unavailable: true };
+function createRestFallbackDb(baseUrl, apiKey) {
+  function from(table) {
+    let method = 'GET';
+    let selectCols = '*';
+    let opts = {};
+    let filters = [];
+    let orderParam = null;
+    let limitParam = null;
+    let isSingle = false;
+    let bodyPayload = null;
+
+    const builder = {
+      select(cols = '*', options = {}) {
+        selectCols = cols;
+        opts = options || {};
+        return builder;
+      },
+      insert(payload) {
+        method = 'POST';
+        bodyPayload = payload;
+        return builder;
+      },
+      delete() {
+        method = 'DELETE';
+        return builder;
+      },
+      eq(col, val) {
+        if (val !== undefined && val !== null) filters.push(${encodeURIComponent(col)}=eq.);
+        return builder;
+      },
+      order(col, { ascending = true } = {}) {
+        orderParam = ${encodeURIComponent(col)}.;
+        return builder;
+      },
+      limit(n) {
+        limitParam = n;
+        return builder;
+      },
+      single() {
+        isSingle = true;
+        return builder;
+      },
+      then(resolve, reject) {
+        return execute().then(resolve, reject);
+      }
+    };
+
+    async function execute() {
+      try {
+        const params = [];
+        if (method === 'GET' || selectCols) params.push(select=);
+        filters.forEach(f => params.push(f));
+        if (orderParam) params.push(order=);
+        if (limitParam != null) params.push(limit=);
+        const url = ${baseUrl}/rest/v1/;
+        const prefer = [];
+        if (opts.count === 'exact') prefer.push('count=exact');
+        if (method === 'POST') prefer.push('return=representation');
+        const headers = {
+          apikey: apiKey,
+          Authorization: Bearer ,
+          'Content-Type': 'application/json'
+        };
+        if (prefer.length) headers.Prefer = prefer.join(',');
+        if (isSingle) headers.Accept = 'application/vnd.pgrst.object+json';
+
+        const res = await fetch(url, {
+          method: opts.head ? 'HEAD' : method,
+          headers,
+          body: bodyPayload ? JSON.stringify(bodyPayload) : undefined
+        });
+        let count = null;
+        const cr = res.headers.get('content-range');
+        if (cr && cr.includes('/')) {
+          const totalStr = cr.split('/')[1];
+          if (totalStr && totalStr !== '*') count = parseInt(totalStr, 10);
+        }
+        if (!res.ok) {
+          const errText = await res.text().catch(() => res.statusText);
+          return { data: null, error: { message: errText || HTTP  }, count };
+        }
+        if (opts.head || method === 'DELETE' || res.status === 204) {
+          return { data: null, error: null, count };
+        }
+        const data = await res.json();
+        return { data, error: null, count: count ?? (Array.isArray(data) ? data.length : null) };
+      } catch (err) {
+        return { data: null, error: { message: err.message || 'Network error' }, count: null };
+      }
+    }
+
+    return builder;
+  }
+  return { from, unavailable: false };
 }
-const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : unavailableDb();
+const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : createRestFallbackDb(SUPABASE_URL, SUPABASE_KEY);
 
 // Anonymous User Isolation
 // Each browser gets a unique ID - users only see their own data
@@ -1000,7 +1087,7 @@ async function loadHistory() {
   $('#history-tools')?.classList.remove('hidden');
 
   if (!historyCache) list.innerHTML = skeletonRows(4);
-  const { data, error } = await db.from('analyses').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  const { data, error } = await db.from('analyses').select('*').order('created_at', { ascending: false }).limit(100);
   if (error) {
     list.innerHTML = `<div class="empty-state"><h3>History is unavailable</h3><p>${db.unavailable ? 'Storage is blocked in this browser. Checks still work, they just are not saved.' : 'Could not reach storage. Check your connection and try again.'}</p></div>`;
     return;
@@ -1122,8 +1209,8 @@ async function viewHistoryDetail(analysisId) {
   const list = $('#history-list');
 
   const [{ data: analysis }, { data: rows }] = await Promise.all([
-    db.from('analyses').select('*').eq('id', analysisId).eq('user_id', userId).single(),
-    db.from('claims').select('*').eq('analysis_id', analysisId).eq('user_id', userId).order('created_at', { ascending: true })
+    db.from('analyses').select('*').eq('id', analysisId).single(),
+    db.from('claims').select('*').eq('analysis_id', analysisId).order('created_at', { ascending: true })
   ]);
   if (!analysis || !rows) { showToast('Could not open that check', 'error'); return; }
 
@@ -1195,7 +1282,7 @@ $('#btn-clear-history').addEventListener('click', async () => {
 
 $('#btn-export-history')?.addEventListener('click', async () => {
   const [{ data: analyses }, { data: claims }] = await Promise.all([
-    db.from('analyses').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+    db.from('analyses').select('*').order('created_at', { ascending: false }).limit(100),
     db.from('claims').select('*').eq('user_id', userId)
   ]);
   if (!analyses) { showToast('Could not export history', 'error'); return; }
@@ -1216,7 +1303,7 @@ $('#btn-export-history')?.addEventListener('click', async () => {
 
 async function loadSources() {
   const list = $('#sources-list');
-  const { data, error } = await db.from('claims').select('source_name, source_url, status').eq('user_id', userId);
+  const { data, error } = await db.from('claims').select('source_name, source_url, status').limit(1000);
   if (error) {
     list.innerHTML = `<div class="empty-state small-empty"><h3>Unavailable</h3><p>Sources from past checks could not be loaded.</p></div>`;
     return;
@@ -1333,8 +1420,8 @@ async function checkDbStatus() {
   statusEl.textContent = 'Checking...';
   statusEl.className = 'db-status';
   const [a, c] = await Promise.all([
-    db.from('analyses').select('*', { count: 'exact', head: true }).eq('user_id', userId),
-    db.from('claims').select('*', { count: 'exact', head: true }).eq('user_id', userId)
+    db.from('analyses').select('*', { count: 'exact', head: true }),
+    db.from('claims').select('*', { count: 'exact', head: true })
   ]);
   if (a.error || c.error) {
     statusEl.textContent = 'Disconnected';
@@ -1352,7 +1439,7 @@ async function checkDbStatus() {
 // DASHBOARD - running totals in the ledger
 
 async function loadDashboardStats() {
-  const { data: analyses, error } = await db.from('analyses').select('trust_score, verified_count, total_claims').eq('user_id', userId);
+  const { data: analyses, error } = await db.from('analyses').select('trust_score, verified_count, total_claims');
   if (error || !analyses) return;
   const totalAnalyses = analyses.length;
   const totalClaims = analyses.reduce((s, a) => s + (a.total_claims || 0), 0);
@@ -1738,8 +1825,8 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
   async function load() {
     if (cache) return cache;
     const [a, c] = await Promise.all([
-      db.from('analyses').select('id, input_text, trust_score, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
-      db.from('claims').select('id, analysis_id, claim_text, status, confidence, explanation, source_url, source_name, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(1000)
+      db.from('analyses').select('id, input_text, trust_score, created_at').order('created_at', { ascending: false }).limit(200),
+      db.from('claims').select('id, analysis_id, claim_text, status, confidence, explanation, source_url, source_name, created_at').order('created_at', { ascending: false }).limit(1000)
     ]);
     if (a.error && c.error) throw new Error(db.unavailable ? 'Storage is blocked in this browser.' : 'Could not reach storage.');
     cache = { analyses: a.data || [], claims: c.data || [] };
