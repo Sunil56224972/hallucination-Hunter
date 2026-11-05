@@ -187,6 +187,19 @@ html:not(.hh-boot) .boot-screen {
   display: none;
 }
 
+html.hh-boot:not(.hh-boot-out) {
+  scrollbar-color: transparent transparent;
+}
+html.hh-boot:not(.hh-boot-out)::-webkit-scrollbar-thumb,
+html.hh-boot:not(.hh-boot-out) body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-color: transparent;
+}
+html.hh-boot:not(.hh-boot-out)::-webkit-scrollbar-track,
+html.hh-boot:not(.hh-boot-out) body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 html.hh-boot:not(.hh-boot-out) .masthead,
 html.hh-boot:not(.hh-boot-out) .main-wrapper {
   opacity: 0;
@@ -247,14 +260,14 @@ html.hh-boot-out .boot-stage {
   position: absolute;
   top: 42%;
   left: 50%;
-  width: min(520px, 88vw);
+  width: min(560px, 90vw);
   aspect-ratio: 1;
   transform: translate(-50%, -50%) scale(0.84);
   background: radial-gradient(
     circle,
-    rgba(138, 115, 74, 0.13) 0%,
-    rgba(29, 28, 70, 0.05) 42%,
-    transparent 70%
+    rgba(184, 152, 92, 0.14) 0%,
+    rgba(138, 115, 74, 0.05) 38%,
+    transparent 68%
   );
   opacity: 0;
   pointer-events: none;
@@ -266,7 +279,7 @@ html.hh-boot-out .boot-stage {
 
 .boot-crest {
   position: relative;
-  width: min(400px, 76vw);
+  width: min(440px, 78vw);
   aspect-ratio: 1200 / 696;
 }
 

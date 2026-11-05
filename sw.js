@@ -3,12 +3,12 @@
 // Static files and fonts: serve from cache, refresh in the background.
 // API calls and storage requests are never cached.
 
-const VERSION = 'hh-v17';
+const VERSION = 'hh-v18';
 const SHELL = [
   './',
   'index.html',
-  'style.css',
-  'app.js',
+  'style.css?v=18',
+  'app.js?v=18',
   'manifest.webmanifest',
   'assets/favicon.svg',
   'assets/favicon-32.png',
