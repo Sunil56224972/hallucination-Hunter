@@ -1,0 +1,28 @@
+# Hallucination Hunter
+
+> Claim-by-claim factual verification engine and shared Supabase Postgres fact-check ledger for LLMs (Claude, Antigravity, ChatGPT, Cursor, Gemini, Codex, and custom agents).
+
+## Capabilities
+
+- Breaks LLM responses or passages into standalone atomic claims while keeping exact dates, numbers, versions, and names intact.
+- Verifies each claim with strict post-cutoff honesty (`verified`, `unverifiable`, or `false` with a factual correction) and resolves live authoritative web URLs.
+- Cross-checks against and writes back to the shared Hallucination Hunter Supabase Postgres database (`analyses` and `claims` tables).
+- Returns both structured JSON verdicts and a `markdownReport` block ready to append directly beneath an LLM's answer.
+
+## Endpoints & Protocols
+
+- Web Console: https://hallucination-hunter-five.vercel.app
+- REST Verification & DB API: `POST https://hallucination-hunter-five.vercel.app/api/verify`
+- Fact-Check Database Search: `GET https://hallucination-hunter-five.vercel.app/api/verify?search=<keyword>`
+- Remote MCP Server (Streamable HTTP JSON-RPC 2.0): `https://hallucination-hunter-five.vercel.app/api/mcp`
+- OpenAPI 3.1 Schema (ChatGPT Custom GPT Actions): https://hallucination-hunter-five.vercel.app/openapi.json
+- Agent Skill Repository (`npx skills add`): https://github.com/Sunil56224972/hallucination-Hunter (`skills/hallucination-hunter/SKILL.md`)
+- Downloadable Skill Zip (Claude.ai): https://hallucination-hunter-five.vercel.app/assets/hallucination-hunter-skill.zip
+
+## Quick Example (POST /api/verify)
+
+```bash
+curl -sS -X POST https://hallucination-hunter-five.vercel.app/api/verify \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Python was created by Guido van Rossum in 1991. Python 3.0 was released in 2005.","client":"llm"}'
+```

@@ -52,6 +52,7 @@
         <a href="#" class="sidebar-link active" data-view="analyzer">Check</a>
         <a href="#" class="sidebar-link" data-view="history">History</a>
         <a href="#" class="sidebar-link" data-view="sources">Sources</a>
+        <a href="#" class="sidebar-link" data-view="skill">Skill</a>
         <a href="#" class="sidebar-link" data-view="settings">Settings</a>
         <a href="#" class="sidebar-link" data-view="info">About</a>
         <span class="nav-ink" aria-hidden="true"></span>
@@ -400,6 +401,222 @@
       </section>
     </section>
 
+    <!-- Skill & LLM Integrations -->
+    <section class="view" id="view-skill">
+      <header class="page-header page-header-row">
+        <div>
+          <h1 class="page-title">Skill &amp; LLM Integrations</h1>
+          <p class="page-subtitle">Connect Hallucination Hunter to Antigravity, Claude, ChatGPT, or any MCP/REST model so answers include live claim verdicts synced with your Supabase database.</p>
+        </div>
+        <div class="header-actions">
+          <a class="action-btn" href="openapi.json" target="_blank" rel="noopener">OpenAPI 3.1 &nearr;</a>
+          <a class="btn-solid skill-dl-link" href="assets/hallucination-hunter-skill.zip" download="hallucination-hunter-skill.zip">Download Skill (.zip)</a>
+        </div>
+      </header>
+
+      <section class="content-section first-section">
+        <div class="section-label"><h2>Endpoints &amp; Package</h2></div>
+        <div class="endpoint-ledger">
+          <div class="endpoint-row">
+            <span class="endpoint-kind">Agent Skill CLI</span>
+            <code class="endpoint-val">npx skills add Sunil56224972/hallucination-Hunter</code>
+            <button type="button" class="action-btn copy-snip-btn" data-copy="npx skills add Sunil56224972/hallucination-Hunter">Copy</button>
+          </div>
+          <div class="endpoint-row">
+            <span class="endpoint-kind">Remote MCP (HTTP)</span>
+            <code class="endpoint-val">https://hallucination-hunter-five.vercel.app/api/mcp</code>
+            <button type="button" class="action-btn copy-snip-btn" data-copy="https://hallucination-hunter-five.vercel.app/api/mcp">Copy</button>
+          </div>
+          <div class="endpoint-row">
+            <span class="endpoint-kind">Verify &amp; DB API</span>
+            <code class="endpoint-val">https://hallucination-hunter-five.vercel.app/api/verify</code>
+            <button type="button" class="action-btn copy-snip-btn" data-copy="https://hallucination-hunter-five.vercel.app/api/verify">Copy</button>
+          </div>
+          <div class="endpoint-row">
+            <span class="endpoint-kind">ChatGPT Schema</span>
+            <code class="endpoint-val">https://hallucination-hunter-five.vercel.app/openapi.json</code>
+            <button type="button" class="action-btn copy-snip-btn" data-copy="https://hallucination-hunter-five.vercel.app/openapi.json">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section">
+        <div class="section-head-row">
+          <div class="section-label"><h2>Setup by Platform</h2></div>
+          <div class="segmented skill-platform-tabs" role="tablist" aria-label="Choose LLM platform">
+            <button type="button" role="tab" class="active" aria-selected="true" data-skill-tab="antigravity">Antigravity</button>
+            <button type="button" role="tab" aria-selected="false" data-skill-tab="claude">Claude</button>
+            <button type="button" role="tab" aria-selected="false" data-skill-tab="chatgpt">ChatGPT</button>
+            <button type="button" role="tab" aria-selected="false" data-skill-tab="other">Other LLMs &amp; DB</button>
+          </div>
+        </div>
+
+        <div class="skill-panel active" data-skill-panel="antigravity">
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>1. Install the Agent Skill</h3>
+                <p>Adds <code>hallucination-hunter</code> to Antigravity so the agent verifies factual claims in its response, corrects false statements, and logs checks to Supabase.</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-ag-skill">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-ag-skill"># Install via Agent Skills CLI
+npx skills add Sunil56224972/hallucination-Hunter
+
+# Or clone directly into Antigravity skills directory
+git clone https://github.com/Sunil56224972/hallucination-Hunter.git
+cp -r hallucination-Hunter/skills/hallucination-hunter ~/.gemini/config/skills/</code></pre>
+          </div>
+
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>2. Optional: Add the MCP Server</h3>
+                <p>Exposes native <code>verify_llm_response</code> and <code>search_factcheck_database</code> tools inside Antigravity&rsquo;s MCP config.</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-ag-mcp">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-ag-mcp">{
+  "mcpServers": {
+    "hallucination-hunter": {
+      "url": "https://hallucination-hunter-five.vercel.app/api/mcp"
+    }
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="skill-panel" data-skill-panel="claude" hidden>
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>1. Claude.ai (Web &amp; Desktop Skills)</h3>
+                <p>Download <a class="inline-text-link" href="assets/hallucination-hunter-skill.zip" download="hallucination-hunter-skill.zip">hallucination-hunter-skill.zip</a>, open Claude <strong>Settings &rarr; Capabilities &rarr; Skills</strong>, and upload the zip. For Claude Code CLI, run:</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-claude-code">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-claude-code">npx skills add Sunil56224972/hallucination-Hunter -a claude-code</code></pre>
+          </div>
+
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>2. Claude Desktop MCP Config</h3>
+                <p>Add to <code>claude_desktop_config.json</code> (remote HTTP or local <code>node mcp/server.mjs</code>) so Claude checks drafts and queries the 900+ claim database.</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-claude-mcp">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-claude-mcp">{
+  "mcpServers": {
+    "hallucination-hunter": {
+      "command": "node",
+      "args": ["/path/to/hallucination-Hunter/mcp/server.mjs"],
+      "env": { "HH_CLIENT": "claude" }
+    }
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="skill-panel" data-skill-panel="chatgpt" hidden>
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>1. Import Action Schema URL</h3>
+                <p>In ChatGPT, open <strong>Explore GPTs &rarr; Create &rarr; Configure &rarr; Actions &rarr; Import from URL</strong> and paste this OpenAPI 3.1 endpoint (Authentication: <em>None</em>):</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-gpt-url">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-gpt-url">https://hallucination-hunter-five.vercel.app/openapi.json</code></pre>
+          </div>
+
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>2. Paste Custom GPT Instructions</h3>
+                <p>Instructs ChatGPT to verify its factual answers against Hallucination Hunter&rsquo;s engine + database and display the audit block beneath its reply.</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-gpt-prompt">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-gpt-prompt">When answering any prompt with objective factual claims (dates, numbers, versions, names, scientific or historical facts):
+1. Draft a clear, direct answer first.
+2. Call verifyLlmResponse with your drafted text and client="chatgpt".
+3. If any claim returns status="false", fix that statement in your answer using the returned correction.
+4. Present your final answer first, then append the returned markdownReport block underneath so the user gets both your answer and the database-synced Hallucination Hunter verification.</code></pre>
+          </div>
+        </div>
+
+        <div class="skill-panel" data-skill-panel="other" hidden>
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>1. Verify Any LLM Output &amp; Sync to Database</h3>
+                <p>Works with Gemini, Cursor, Windsurf, Codex CLI, LangChain, LlamaIndex, Dify, OpenWebUI, or n8n HTTP nodes. Pass optional <code>Authorization: Bearer gsk_...</code> for dedicated throughput.</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-rest-post">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-rest-post">curl -sS -X POST https://hallucination-hunter-five.vercel.app/api/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Python was created by Guido van Rossum in 1991. Python 3.0 shipped in 2005.",
+    "client": "gemini-agent",
+    "saveToDatabase": true
+  }'</code></pre>
+          </div>
+
+          <div class="skill-step-card">
+            <div class="skill-step-head">
+              <div>
+                <h3>2. Query the Shared Supabase Fact-Check Database</h3>
+                <p>Search previously verified or contradicted claims across all connected assistants directly via <code>GET /api/verify</code>.</p>
+              </div>
+              <button type="button" class="action-btn copy-snip-btn" data-copy-target="snip-rest-db">Copy</button>
+            </div>
+            <pre class="code-sheet"><code id="snip-rest-db"># Search stored claims by keyword &amp; status
+curl -sS "https://hallucination-hunter-five.vercel.app/api/verify?search=Python&amp;limit=5"
+
+# Retrieve live database totals and recent cross-LLM checks
+curl -sS "https://hallucination-hunter-five.vercel.app/api/verify?limit=5"</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section">
+        <div class="section-head-row">
+          <div class="section-label"><h2>Live Co-Pilot Test</h2></div>
+          <span class="wire-note">Runs <code>POST /api/verify</code> and syncs to Supabase</span>
+        </div>
+        <div class="copilot-sandbox">
+          <div class="copilot-controls">
+            <label class="visually-hidden" for="skill-test-input">Sample LLM response</label>
+            <textarea id="skill-test-input" class="copilot-textarea" rows="3" spellcheck="false">The Eiffel Tower was completed in 1889 for the Paris World's Fair and stands 450 meters tall.</textarea>
+            <div class="copilot-bar">
+              <div class="copilot-bar-left">
+                <label class="copilot-client-label" for="skill-test-client">Simulated client</label>
+                <select id="skill-test-client" class="select-input select-compact">
+                  <option value="antigravity">antigravity</option>
+                  <option value="claude">claude</option>
+                  <option value="chatgpt">chatgpt</option>
+                  <option value="mcp">mcp</option>
+                </select>
+              </div>
+              <button type="button" class="btn-solid" id="btn-skill-test">
+                <span class="btn-label"><span>Run live verify</span></span>
+                <span class="btn-spinner" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+          <div class="copilot-output hidden" id="skill-test-output" aria-live="polite">
+            <div class="copilot-out-head">
+              <span class="copilot-out-title">Returned <code>markdownReport</code> (appended beneath the LLM&rsquo;s answer)</span>
+              <span class="copilot-out-meta" id="skill-test-meta"></span>
+            </div>
+            <pre class="code-sheet copilot-pre"><code id="skill-test-md"></code></pre>
+          </div>
+        </div>
+      </section>
+    </section>
+
     <!-- Settings -->
     <section class="view" id="view-settings">
       <header class="page-header page-header-row">
@@ -496,7 +713,8 @@
           <h3 class="spec-title">Stack</h3>
           <dl class="spec-dl">
             <div><dt>Frontend</dt><dd>Plain HTML, CSS, and ES2022 &mdash; no framework or build step</dd></div>
-            <div><dt>Model</dt><dd><code>openai/gpt-oss-120b</code> via <code>/api/groq</code></dd></div>
+            <div><dt>Model</dt><dd><code>openai/gpt-oss-120b</code> via <code>/api/groq</code> &amp; <code>/api/verify</code></dd></div>
+            <div><dt>Skill &amp; MCP</dt><dd>Agent Skill, Streamable HTTP <code>/api/mcp</code>, OpenAPI 3.1</dd></div>
             <div><dt>Source lookup</dt><dd>Live URL resolution via <code>/api/search</code></dd></div>
             <div><dt>Storage</dt><dd>Supabase Postgres (<code>ap-south-1</code>)</dd></div>
             <div><dt>Extension</dt><dd>Chrome Manifest V3 popup &amp; context-menu checker</dd></div>
@@ -583,6 +801,12 @@
           <path d="M10 5.4C8.4 4.2 6 3.8 3.4 4v11.2c2.6-.2 5 .2 6.6 1.4 1.6-1.2 4-1.6 6.6-1.4V4c-2.6-.2-5 .2-6.6 1.4ZM10 5.4v11.2"/>
         </svg>
         <span class="mobile-nav-label">Sources</span>
+      </button>
+      <button type="button" class="mobile-nav-link" data-view="skill">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6.8 6.4 3.2 10l3.6 3.6M13.2 6.4 16.8 10l-3.6 3.6M11.2 4.6l-2.4 10.8"/>
+        </svg>
+        <span class="mobile-nav-label">Skill</span>
       </button>
       <button type="button" class="mobile-nav-link" data-view="settings">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">

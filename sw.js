@@ -3,7 +3,7 @@
 // Static files and fonts: serve from cache, refresh in the background.
 // API calls and storage requests are never cached.
 
-const VERSION = 'hh-v14';
+const VERSION = 'hh-v15';
 const SHELL = [
   './',
   'index.html',

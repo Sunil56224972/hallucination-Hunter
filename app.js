@@ -211,8 +211,8 @@ function withTransition(update) {
 }
 
 // Navigation
-const ROUTES = { check: 'analyzer', history: 'history', sources: 'sources', settings: 'settings', about: 'info' };
-const VIEW_TO_ROUTE = { analyzer: 'check', history: 'history', sources: 'sources', settings: 'settings', info: 'about' };
+const ROUTES = { check: 'analyzer', history: 'history', sources: 'sources', skill: 'skill', settings: 'settings', about: 'info' };
+const VIEW_TO_ROUTE = { analyzer: 'check', history: 'history', sources: 'sources', skill: 'skill', settings: 'settings', info: 'about' };
 let currentView = 'analyzer';
 
 function applyView(viewName) {
@@ -227,7 +227,7 @@ function applyView(viewName) {
   $$('.mobile-nav-link').forEach(m => m.classList.toggle('active', m.dataset.view === viewName));
   currentView = viewName;
   refreshInks();
-  const titles = { analyzer: 'Check', history: 'History', sources: 'Sources', settings: 'Settings', info: 'About' };
+  const titles = { analyzer: 'Check', history: 'History', sources: 'Sources', skill: 'Skill & API', settings: 'Settings', info: 'About' };
   document.title = viewName === 'analyzer'
     ? 'Hallucination Hunter \u2014 Fact-check AI answers'
     : `${titles[viewName]} \u2014 Hallucination Hunter`;
@@ -1120,7 +1120,8 @@ async function saveAnalysis(text, claims) {
     verified_count: vCount,
     unverifiable_count: uCount,
     false_count: fCount,
-    user_id: userId
+    user_id: userId,
+    model_used: GROQ_MODEL
   }).select().single();
   if (aErr) throw aErr;
 
@@ -1175,6 +1176,14 @@ async function loadHistory() {
   renderHistory();
 }
 
+function originTagHtml(uid) {
+  const s = String(uid || '');
+  if (!s.startsWith('skill:')) return '';
+  const name = s.slice(6).trim();
+  if (!name) return '';
+  return `<span>&middot;</span><span class="origin-tag">via ${escapeHtml(name)}</span>`;
+}
+
 function renderHistory() {
   const list = $('#history-list');
   const q = ($('#history-filter')?.value || '').trim().toLowerCase();
@@ -1207,7 +1216,7 @@ function renderHistory() {
         <span class="row-verdict ${meta.rowBand}"><span class="row-dot" aria-hidden="true"></span><span>${meta.rowLabel}</span></span>
         <span class="history-info">
           <span class="history-preview">${escapeHtml(preview)}</span>
-          <span class="history-meta"><span title="${escapeAttr(new Date(a.created_at).toLocaleString())}">${relativeDate(a.created_at)}</span><span>&middot;</span><span>${a.total_claims || 0} ${(a.total_claims || 0) === 1 ? 'claim' : 'claims'}</span></span>
+          <span class="history-meta"><span title="${escapeAttr(new Date(a.created_at).toLocaleString())}">${relativeDate(a.created_at)}</span><span>&middot;</span><span>${a.total_claims || 0} ${(a.total_claims || 0) === 1 ? 'claim' : 'claims'}</span>${originTagHtml(a.user_id)}</span>
         </span>
         <span class="history-summary-text">${escapeHtml(summary)}</span>
       </button>
@@ -1572,7 +1581,7 @@ async function checkDbStatus() {
 async function loadDashboardStats() {
   const { data: analyses, error, count } = await db
     .from('analyses')
-    .select('id, input_text, trust_score, verified_count, unverifiable_count, false_count, total_claims, created_at', { count: 'exact' })
+    .select('id, input_text, trust_score, verified_count, unverifiable_count, false_count, total_claims, user_id, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .limit(200);
   if (error || !analyses) {
@@ -2130,6 +2139,94 @@ $$('dialog').forEach(d => d.addEventListener('click', e => { if (e.target === d)
         if (item.dataset.action === 'analysis') { switchView('history'); viewHistoryDetail(item.dataset.id); }
         else window.open(item.dataset.url, '_blank', 'noopener');
       });
+    });
+  }
+})();
+
+// Skill & LLM Integrations view
+(() => {
+  const view = $('#view-skill');
+  if (!view) return;
+
+  const tabs = [...view.querySelectorAll('[data-skill-tab]')];
+  const panels = [...view.querySelectorAll('[data-skill-panel]')];
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.skillTab;
+      tabs.forEach(t => {
+        const active = t === tab;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      panels.forEach(p => {
+        const match = p.dataset.skillPanel === target;
+        p.classList.toggle('active', match);
+        p.hidden = !match;
+      });
+    });
+  });
+
+  view.querySelectorAll('.copy-snip-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const targetId = btn.dataset.copyTarget;
+      const text = targetId ? (document.getElementById(targetId)?.textContent || '') : (btn.dataset.copy || '');
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text.trim());
+        const prev = btn.dataset.origLabel || btn.textContent;
+        btn.dataset.origLabel = prev;
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = prev; }, 1400);
+      } catch {
+        showToast('Clipboard access blocked in this browser.', 'error');
+      }
+    });
+  });
+
+  const testBtn = $('#btn-skill-test');
+  const testInput = $('#skill-test-input');
+  const testClient = $('#skill-test-client');
+  const outWrap = $('#skill-test-output');
+  const outMeta = $('#skill-test-meta');
+  const outMd = $('#skill-test-md');
+
+  if (testBtn && testInput) {
+    testBtn.addEventListener('click', async () => {
+      const passage = testInput.value.trim();
+      if (passage.length < 15) {
+        showToast('Enter at least one complete factual sentence.', 'info');
+        return;
+      }
+      testBtn.disabled = true;
+      testBtn.classList.add('loading');
+      const endpoint = (IS_VERCEL ? '' : PROD_ORIGIN) + '/api/verify';
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: passage,
+            client: testClient?.value || 'antigravity',
+            saveToDatabase: true
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) {
+          throw new Error(data.error || `API returned HTTP ${res.status}`);
+        }
+        outMd.textContent = `${passage}\n\n${data.markdownReport || ''}`;
+        const dbBadge = data.savedToDatabase ? `Synced to Supabase (${data.counts?.total || 0} claims \u00b7 via ${data.client})` : 'Verified';
+        outMeta.textContent = dbBadge;
+        outWrap.classList.remove('hidden');
+        historyCache = null;
+        loadDashboardStats();
+      } catch (err) {
+        showToast(err.message || 'Live verification request failed.', 'error');
+      } finally {
+        testBtn.disabled = false;
+        testBtn.classList.remove('loading');
+      }
     });
   }
 })();

@@ -1,0 +1,213 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hallucination Hunter Verification & Fact-Check Database API",
+    "description": "Verify LLM outputs claim by claim against established knowledge, live web sources, and the shared Hallucination Hunter Supabase Postgres database.",
+    "version": "1.2.0"
+  },
+  "servers": [
+    {
+      "url": "https://hallucination-hunter-five.vercel.app",
+      "description": "Production Vercel Edge & Serverless deployment"
+    }
+  ],
+  "paths": {
+    "/api/verify": {
+      "post": {
+        "operationId": "verifyLlmResponse",
+        "summary": "Verify factual claims in an LLM draft or passage and sync to database",
+        "description": "Breaks text into atomic factual claims, checks each claim, resolves live web URLs, syncs results to the Hallucination Hunter database, and returns verdicts plus markdownReport.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "description": "Factual passage or draft LLM answer to verify (15 to 20,000 characters)."
+                  },
+                  "client": {
+                    "type": "string",
+                    "default": "chatgpt",
+                    "description": "Identifier of the calling LLM assistant (e.g. chatgpt, claude, antigravity)."
+                  },
+                  "saveToDatabase": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Persist verified claims to the Hallucination Hunter Supabase database."
+                  },
+                  "enrichSources": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Resolve live authoritative web URLs for extracted claims."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Structured verification report and Markdown footer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "searchFactCheckDatabase",
+        "summary": "Search previously verified and false claims in the Hallucination Hunter database",
+        "description": "Queries the Supabase Postgres ledger of checked claims and cited sources by keyword, or returns recent checks and totals when search is omitted.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Keyword, entity, or claim text to search in the database.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Optional verdict filter (verified, unverifiable, false).",
+            "schema": {
+              "type": "string",
+              "enum": ["verified", "unverifiable", "false"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum records to return (1 to 30).",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching claims or recent database checks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatabaseSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "VerifyResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "client": { "type": "string" },
+          "analysisId": { "type": ["string", "null"] },
+          "savedToDatabase": { "type": "boolean" },
+          "inspectUrl": { "type": "string" },
+          "markdownReport": {
+            "type": "string",
+            "description": "Ready-to-append Markdown verification block to display directly below your answer."
+          },
+          "verdict": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "title": { "type": "string" },
+              "band": { "type": "string" },
+              "trustScore": { "type": ["integer", "null"] },
+              "unverifiedOnly": { "type": "boolean" },
+              "summary": { "type": "string" }
+            }
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer" },
+              "verified": { "type": "integer" },
+              "unverifiable": { "type": "integer" },
+              "false": { "type": "integer" }
+            }
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimVerdict"
+            }
+          },
+          "databaseMatches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "claim": { "type": "string" },
+                "status": { "type": "string" },
+                "confidence": { "type": "integer" },
+                "source": { "type": "string" },
+                "sourceUrl": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "ClaimVerdict": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "claim": { "type": "string" },
+          "originalSentence": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["verified", "unverifiable", "false"]
+          },
+          "confidence": { "type": "integer" },
+          "explanation": { "type": "string" },
+          "correction": { "type": ["string", "null"] },
+          "source": { "type": "string" },
+          "sourceUrl": { "type": "string" },
+          "category": { "type": "string" }
+        }
+      },
+      "DatabaseSearchResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "mode": { "type": "string" },
+          "count": { "type": "integer" },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "claim": { "type": "string" },
+                "status": { "type": "string" },
+                "confidence": { "type": "integer" },
+                "explanation": { "type": "string" },
+                "source": { "type": "string" },
+                "sourceUrl": { "type": "string" },
+                "origin": { "type": "string" },
+                "checkedAt": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

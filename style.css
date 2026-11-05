@@ -215,7 +215,7 @@ code, kbd {
   padding: 0 24px;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 18px;
 }
 
 .brand {
@@ -254,10 +254,11 @@ code, kbd {
   display: inline-flex;
   align-items: center;
   height: 100%;
-  padding: 0 11px;
+  padding: 0 9px;
   font-size: 13.5px;
   font-weight: 500;
   color: var(--ink-3);
+  white-space: nowrap;
   transition: color 0.15s ease;
 }
 .sidebar-link:hover {
@@ -1888,7 +1889,9 @@ code, kbd {
   font-weight: 500;
   color: var(--ink-2);
 }
-.segmented button[aria-pressed="true"] {
+.segmented button[aria-pressed="true"],
+.segmented button[aria-selected="true"],
+.segmented button.active {
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-sm);
@@ -1919,6 +1922,226 @@ code, kbd {
   font-weight: 500;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+
+/* Skill & LLM Integrations view */
+.skill-dl-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.endpoint-ledger {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.endpoint-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.endpoint-row:last-child {
+  border-bottom: 0;
+}
+
+.endpoint-kind {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.endpoint-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 4px 8px;
+  background: var(--bg-subtle);
+  border-radius: 4px;
+}
+
+.skill-platform-tabs {
+  flex-wrap: wrap;
+}
+
+.skill-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.skill-panel[hidden] {
+  display: none;
+}
+
+.skill-step-card,
+.copilot-sandbox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.skill-step-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.skill-step-head h3 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.skill-step-head p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.skill-step-head code,
+.wire-note code,
+.copilot-out-title code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  padding: 1px 5px;
+  background: var(--bg-subtle);
+  border-radius: 3px;
+  color: var(--ink);
+}
+
+.inline-text-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+}
+
+.code-sheet {
+  margin: 0;
+  padding: 13px 15px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+  tab-size: 2;
+}
+.code-sheet code {
+  font-family: inherit;
+  white-space: pre;
+}
+
+.copilot-textarea {
+  width: 100%;
+  min-height: 76px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.copilot-textarea:focus {
+  outline: none;
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.copilot-bar {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.copilot-bar-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copilot-client-label {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.select-compact {
+  height: 30px;
+  padding: 0 26px 0 9px;
+  font-size: 12.5px;
+}
+
+.copilot-output {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.copilot-out-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.copilot-out-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.copilot-out-meta {
+  font-size: 12px;
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+
+.copilot-pre code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.origin-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  padding: 1px 5px;
+  background: var(--bg-subtle);
+  border-radius: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* About view */
@@ -2348,7 +2571,8 @@ code, kbd {
   .wire-row {
     grid-template-columns: 92px minmax(0, 1fr) 68px;
   }
-  .wire-summary {
+  .wire-summary,
+  .search-kbd {
     display: none;
   }
 }
@@ -2395,6 +2619,17 @@ code, kbd {
   .source-row {
     grid-template-columns: 28px minmax(0, 1fr) auto;
   }
+  .endpoint-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 10px;
+  }
+  .endpoint-kind {
+    grid-column: 1 / -1;
+  }
+  .skill-step-head {
+    flex-direction: column;
+    gap: 10px;
+  }
   .setting-row {
     flex-direction: column;
     align-items: flex-start;
@@ -2423,7 +2658,7 @@ code, kbd {
   }
   .mobile-nav-inner {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     height: 56px;
   }
   .mobile-nav-link {
