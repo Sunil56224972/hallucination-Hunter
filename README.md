@@ -1,218 +1,269 @@
 # Hallucination Hunter
 
-An autonomous agentic verification system for AI-generated text. Hallucination Hunter operates as an automated fact-checking agent: it decomposes arbitrary LLM output into discrete atomic propositions, orchestrates multi-source tool-calling loops across institutional knowledge bases and live web indexes, assesses confidence via adversarial cross-examination, and files structured verdicts with real-time provenance tracking.
+Claim-by-claim fact-checker for AI-generated answers. Paste a passage from ChatGPT, Claude, Gemini, or any other model—or connect Hallucination Hunter directly inside your assistant—to split a reply into atomic factual statements, check each line against established sources and past records, and flag contradictions with a correction and source link.
 
-Built with vanilla HTML, CSS, and ES2022 JavaScript on Node / Vercel edge runtime, with Supabase Postgres for durable dossier memory. There is no build step.
+Live app: **https://hallucination-hunter-five.vercel.app**  
+Android APK: **[Download HallucinationHunter.apk (`apk-v1`)](https://github.com/Sunil56224972/hallucination-Hunter/releases/download/apk-v1/HallucinationHunter.apk)**
+
+Built with plain HTML, CSS, and ES2022 JavaScript on Vercel serverless Node functions, backed by Groq (`openai/gpt-oss-120b`), DuckDuckGo source lookup, and Supabase Postgres (`ap-south-1`). There is no frontend framework or build step.
 
 ```
-Incoming LLM Output ──POST /api/ingest/text──> ┌───────────────────────────┐ ──Agentic Workflow──> Verified Dossier & Galley Markup
-(ChatGPT / Claude / Gemini / Agentic APIs)     │   Hallucination Hunter    │ <──State Sync─── Supabase Memory (Postgres 17)
-                                               │   Autonomous Supervisor   │
-                                               └─────────────┬─────────────┘
-                                                             │
-           ┌───────────────────────────────┬─────────────────┴────────────────┬───────────────────────────────┐
-           │                               │                                  │                               │
-    ┌──────▼──────┐                 ┌──────▼──────┐                    ┌──────▼──────┐                 ┌──────▼──────┐
-    │ Claim Parser│                 │  Reference  │                    │ Adversarial │                 │ Prov Tracker│
-    │ Atomic Fact │                 │   Retriever │                    │  Evaluator  │                 │ MITRE/NVD/  │
-    │ Extraction  │                 │  Web & APIs │                    │ Calibrator  │                 │ Primary Cite│
-    └─────────────┘                 └─────────────┘                    └─────────────┘                 └─────────────┘
-           │                               │                                  │                               │
-           └───────────────────────────────┼──────────────────────────────────┴───────────────────────────────┘
-                                           │
-                                    ┌──────▼──────┐
-                                    │ Tool Hub &  │ <── Chrome MV3 Extension (Agentic text capture)
-                                    │ Client Sync │ <── Capacitor Android Native Shell (.apk)
-                                    │ PostgREST DB│ <── Headless CLI & MCP-Compatible Tools
-                                    └─────────────┘
+Browser / Extension / APK ──POST /api/groq, /api/search──┐
+                                                         ▼
+Claude / Antigravity / Cursor ──Skill CLI / /api/mcp──> ┌──────────────────────────┐
+                                                        │   Hallucination Hunter   │
+ChatGPT Custom GPT / REST ──────POST /api/verify──────> │  Extract · Check · Cite  │
+                                                        └────────────┬─────────────┘
+                                                                     │
+                     ┌───────────────────────────────────────────────┼───────────────────────────────────────────┐
+                     ▼                                               ▼                                           ▼
+        ┌────────────────────────┐                      ┌────────────────────────┐                  ┌────────────────────────┐
+        │ Groq Inference         │                      │ Live Source Lookup     │                  │ Supabase Postgres      │
+        │ openai/gpt-oss-120b    │                      │ DuckDuckGo + Reference │                  │ analyses · claims ·    │
+        │ Claim split & verdicts │                      │ domain matching        │                  │ settings (ap-south-1)  │
+        └────────────────────────┘                      └────────────────────────┘                  └────────────────────────┘
 ```
-
-The fastest way to attach the agent to your browsing workflow is the bundled Manifest V3 extension (`chrome-extension/`), which intercepts text selections via context menus and routes them to the agentic pipeline without context switching. On mobile, the entire agent shell compiles directly into an installable Android APK via Capacitor.
 
 ---
 
-## Agentic Verification Architecture
+## How a check runs
 
-Every verification request triggers an autonomous multi-stage agentic workflow streamed live to the console:
-
-```
-[Raw Manuscript] ──> (Phase 1: Triage & Decomposition)
-                            │
-                            ▼
-                    [Atomic Claims Matrix] ──> (Phase 2: Autonomous Tool Calling & Search)
-                                                      │
-                                                      ▼
-                                              [Evidence Graph] ──> (Phase 3: Adversarial Verification)
-                                                                          │
-                                                                          ▼
-                                                                  [Scored Dossier] ──> (Phase 4: Synthesis & Provenance)
-                                                                                              │
-                                                                                              ▼
-                                                                                  [Galley Proof & Supabase Sync]
-```
-
-### The 4-Phase Pipeline
-
-| Phase | Agent Role | Execution & Tools |
+| Step | Stage | What happens |
 | :--- | :--- | :--- |
-| **01 Triage & Decomposition** | **Parser Agent** | Ingests raw text, strips rhetorical filler and subjective hedging, and decomposes complex arguments into atomic, independently testable propositions. Preserves numbers, dates, and named entities verbatim with exact character spans for in-situ manuscript pinning. |
-| **02 Autonomous Retrieval** | **Research Agent** | Formulates targeted investigative queries for each atomic statement. Orchestrates parallel calls across the live web and curated institutional authorities (NASA, WHO, CDC, FDA, PubMed, Encyclopedia Britannica, Wikipedia, arXiv, etc.). |
-| **03 Adversarial Cross-Examination** | **Evaluator Agent** | Subjects each claim and retrieved evidence pair to rigorous cross-examination. Enforces a strict zero-hallucination policy: ambiguous or ungrounded claims are classified as `unverifiable` rather than guessed, and contradicted claims generate an explicit, evidence-backed correction. |
-| **04 Synthesis & Provenance** | **Memory & Reporter** | Computes the calibrated Verification Index (0–100%), maps confidence thresholds against user policy, generates proofreader markups with superscript anchors (`01`, `02`), and logs the complete audit trail to Supabase Postgres. |
+| **01** | **Extract** | Strips opinions, hedging, and filler from the input text and breaks objective statements into standalone atomic claims (up to 40 per run) while preserving exact numbers, dates, versions, and substrings for inline underlining. |
+| **02** | **Cross-check** | Queries prior verdicts in the Supabase `claims` ledger in parallel with model verification so recurring statements surface previous checks alongside fresh evaluation. |
+| **03** | **Verify** | Evaluates each claim with strict uncertainty rules: post-cutoff events, unconfirmed version specs, or unverifiable attributions are marked `unverifiable` rather than guessed. Contradicted claims get a one-sentence correction, and claims are paired with live source URLs via DuckDuckGo. |
+| **04** | **Record** | Computes the trust score across verifiable claims (`Unverified` when every claim is unverifiable), underlines claims inline in the passage, returns a Markdown co-pilot report for connected assistants, and writes the run to Supabase Postgres. |
 
 ---
 
-## Agent Capabilities & Surfaces
+## Connecting your assistant
 
-- **Live Galley Proof Console** — Ruled manuscript sheet with live word/char counters, specimen presets (*Great Wall*, *Python Release*, *Eiffel Tower*), audio dictation, and batch verification.
-- **Forensic Verification Dossier** — Real-time Verification Index circular readout, proportional breakdown meters (`Verified`, `Unverifiable`, `Contradicted`), and multi-format export (Markdown, PDF, Clipboard, Share URL).
-- **Claim-by-Claim Ledger** — Numbered inspection cards (`#01`, `#02`...) with rectangular editorial verdict stamps, certainty gauges, threshold violation markers, and expandable reasoning notes.
-- **In-Situ Manuscript Markup** — Original passage underlined in place with proofreader styling and superscripts; clicking any mark scrolls directly to its evaluation card.
-- **Durable Memory & History** — Persistent audit logs synced with Supabase Postgres (`ap-south-1`), featuring instant keyword search, JSON state export, and undoable deletion.
-- **Institutional Reference Index** — Authority frequency directory ranking cited reference domains by confidence and citation count.
-- **Omni Search (`Ctrl+K`)** — Global keyboard-driven search indexing historical analyses, atomic claims, and primary sources.
-- **Chrome Extension (MV3)** — In-page context menu integration for instant text extraction across any web surface (`chrome-extension/`).
-- **Android APK & Standalone PWA** — Offline-capable progressive web application and Capacitor Android build wrapper.
+Hallucination Hunter ships as a portable **Agent Skill**, a **Model Context Protocol (MCP) server** (remote HTTP and local stdio), and an **OpenAPI 3.1 Action** so assistants can check factual claims in their own draft before answering and sync every run to the shared Supabase ledger.
+
+### 1. Agent Skill (Antigravity, Claude Code, Cursor, Windsurf, Codex CLI)
+
+Install directly from GitHub with the Agent Skills CLI:
+
+```bash
+npx skills add Sunil56224972/hallucination-Hunter
+```
+
+Or copy `skills/hallucination-hunter` manually into your tool's skill directory (`~/.gemini/config/skills/` for Antigravity, `~/.claude/skills/` for Claude Code):
+
+```bash
+git clone https://github.com/Sunil56224972/hallucination-Hunter.git
+cp -r hallucination-Hunter/skills/hallucination-hunter ~/.gemini/config/skills/
+```
+
+For **Claude.ai** on the web, download [`assets/hallucination-hunter-skill.zip`](https://hallucination-hunter-five.vercel.app/assets/hallucination-hunter-skill.zip) and upload it under **Settings -> Capabilities -> Skills**.
+
+You can also run the zero-dependency skill CLI directly from Node 18+:
+
+```bash
+# Verify a draft and return a Markdown co-pilot block
+node skills/hallucination-hunter/scripts/verify.mjs \
+  --text "The Eiffel Tower opened in 1889 and stands in Berlin." \
+  --client antigravity
+
+# Search previously verified claims in Supabase
+node skills/hallucination-hunter/scripts/verify.mjs --search "Eiffel Tower" --status false
+```
+
+### 2. MCP server (Claude Desktop, Antigravity, Cursor, Windsurf)
+
+Point any Streamable HTTP MCP client at the hosted endpoint—no local install required:
+
+```json
+{
+  "mcpServers": {
+    "hallucination-hunter": {
+      "url": "https://hallucination-hunter-five.vercel.app/api/mcp"
+    }
+  }
+}
+```
+
+If your client only supports local `stdio` servers, run `mcp/server.mjs` with Node 18+:
+
+```json
+{
+  "mcpServers": {
+    "hallucination-hunter": {
+      "command": "node",
+      "args": ["/absolute/path/to/hallucination-Hunter/mcp/server.mjs"]
+    }
+  }
+}
+```
+
+Exposed MCP tools:
+- `verify_llm_response` — extracts atomic claims from an assistant draft or user passage, verifies each claim, writes the audit record to Supabase (`user_id: "skill:<client>"`), and returns structured verdicts plus `markdownReport`.
+- `search_factcheck_database` — searches past claims and analyses in Supabase by keyword and verdict filter (`verified`, `false`, `unverifiable`).
+
+### 3. ChatGPT Custom GPT Action (OpenAPI 3.1)
+
+1. In the GPT editor, open **Configure -> Actions -> Create new action**.
+2. Click **Import from URL** and paste:
+   ```text
+   https://hallucination-hunter-five.vercel.app/openapi.json
+   ```
+3. Set **Authentication** to **None** (or **API Key / Bearer** if passing your own `gsk_...` Groq key).
+4. Add to your GPT instructions:
+   > Before finalizing answers with factual claims, dates, statistics, citations, or version numbers, call `verifyClaims` (`client`: `"chatgpt"`), fix any claim marked `false` in your prose, and append the returned `markdownReport`.
+
+### 4. REST API (`curl` / custom pipelines)
+
+```bash
+# Verify text and log to Supabase
+curl -s https://hallucination-hunter-five.vercel.app/api/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Python was created by Guido van Rossum in 1991. Python 2 and Python 3 are fully backward compatible.",
+    "client": "curl-demo",
+    "saveToDatabase": true
+  }'
+
+# Query stored claims and analyses
+curl -s "https://hallucination-hunter-five.vercel.app/api/verify?search=Python&limit=5"
+```
+
+Pass `"saveToDatabase": false` for ephemeral checks, or send `Authorization: Bearer gsk_...` to run verification against your own Groq API key.
 
 ---
 
-## Quick Start
+## Screens
+
+### Check console
+![Hallucination Hunter check console](screenshots/app-main.png)
+
+### Inline markup and claim verdicts
+![Inline underlines and claim-by-claim corrections](screenshots/app-example.png)
+
+### Skill, MCP, and OpenAPI setup (`#/skill`)
+![Skill and LLM integrations view](screenshots/app-skill.png)
+
+### Cited sources and reference directory (`#/sources`)
+![Sources directory and citation counts](screenshots/app-sources.png)
+
+### Chrome extension (`v1.2`)
+<img src="screenshots/extension-popup.png" alt="Hallucination Hunter Chrome extension v1.2" width="380">
+
+---
+
+## Quick start (local development)
 
 Requires Node 18 or newer.
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Sunil56224972/hallucination-Hunter.git
 cd hallucination-Hunter
 
-# 2. Start the local server (zero build step)
+# Serve static files locally (no build step)
 npx serve -l 3000
 ```
 
-Open `http://localhost:3000`. Local runs automatically proxy through the hosted serverless verification endpoint, so you can test immediately without configuring local API keys.
+Open `http://localhost:3000`. When opened locally without keys, the web UI proxies checks through `https://hallucination-hunter-five.vercel.app`. To run the serverless API routes locally as well:
 
-To run with a direct Groq inference key:
 ```bash
 export GROQ_API_KEY="gsk_..."
-# Or set window.GROQ_API_KEY in the browser console during development
+npx vercel dev
 ```
 
 ---
 
-## Chrome Extension Setup
+## Chrome extension (`v1.2`)
 
-The browser extension allows fact-checking text on any webpage without navigating away:
+Check text on any webpage without leaving the tab:
 
-1. Open your browser and navigate to `chrome://extensions/` (Chrome, Brave, Edge, Opera).
-2. Enable **Developer mode** in the upper-right corner.
-3. Click **Load unpacked** and select the `chrome-extension/` directory.
-4. Pin the extension to your toolbar.
-5. Highlight any text on any page &rarr; right-click &rarr; select **Check with Hallucination Hunter** (or press `Alt+Shift+H`).
+1. Open `chrome://extensions/` in Chrome, Edge, Brave, or Arc.
+2. Turn on **Developer mode**.
+3. Click **Load unpacked** and choose the `chrome-extension/` folder.
+4. Highlight any passage on a webpage, right-click, and pick **Check with Hallucination Hunter** (or press `Alt+Shift+H`).
 
 ---
 
-## Android Build & APK Packaging
+## Android app
 
-The application includes Capacitor mobile scaffolding to build native Android packages:
+Download the signed installable package directly from GitHub Releases:
+- **[HallucinationHunter.apk (`apk-v1`)](https://github.com/Sunil56224972/hallucination-Hunter/releases/download/apk-v1/HallucinationHunter.apk)**
+
+To rebuild the Capacitor Android project from source:
 
 ```bash
-# Generate launcher icons and splash screens from resources/
 npx @capacitor/assets generate --android
-
-# Synchronize web assets with the native Android container
 npx cap sync android
-
-# Build the debug APK
 cd android && ./gradlew assembleDebug
 ```
-The compiled APK will be output to:
-`android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
-## Supabase State & Memory Backend
+## Endpoints
 
-Persistent audit trails and historical dossiers are stored in Supabase Postgres (`ap-south-1`). The application features an automatic PostgREST REST client fallback, guaranteeing uninterrupted operation even if external CDN bundles are blocked.
-
-```
-Postgres Schema:
-├── analyses        # Master dossier records (trust score, totals, timestamp, user ID)
-├── claims          # Atomic statements, verdict statuses, confidence, corrections, source URLs
-└── settings        # Policy configuration, confidence thresholds, UI theme preferences
-```
-
-### Production Database Optimization:
-To configure your own database instance, apply the following indexes:
-```sql
-CREATE INDEX idx_claims_analysis_id ON claims(analysis_id);
-CREATE INDEX idx_analyses_created_at_desc ON analyses(created_at DESC);
-CREATE INDEX idx_settings_key_user ON settings(key, user_id);
-```
-
----
-
-## Deployment & Edge Runtime
-
-Deploy instantly to Vercel with zero configuration:
-
-```bash
-vercel --prod
-```
-
-### Environment Variables:
-| Variable | Description |
-| :--- | :--- |
-| `GROQ_API_KEY` | **Required.** Your Groq Cloud API key powering the `/api/groq.js` inference proxy. |
-
----
-
-## API & Agentic Tool Catalog
-
-All browser operations communicate over structured HTTP endpoints:
-
-| Method | Endpoint | Description |
+| Method | Path | Purpose |
 | :--- | :--- | :--- |
-| `POST` | `/api/groq` | Serverless LPU inference proxy with token-bucket rate limiting (10 req/min/IP) and input sanitization |
-| `POST` | `/api/search` | Dynamic DuckDuckGo search endpoint for real-time reference retrieval |
-| `GET` | `/sw.js` | Service worker managing asset caching and offline resilience |
-| `GET` | `/manifest.webmanifest` | PWA manifest specifying app behavior and mobile icons |
+| `POST` | `/api/verify` | End-to-end claim extraction, verification, DuckDuckGo source lookup, Supabase sync, and Markdown report generation (12 req/min/IP; optional `Bearer gsk_...`). |
+| `GET` | `/api/verify` | Search stored claims and recent analyses in Supabase (`?search=`, `?verdict=`, `?limit=`). |
+| `POST`, `GET` | `/api/mcp` | Remote Model Context Protocol server over stateless Streamable HTTP (JSON-RPC `2025-03-26`). |
+| `POST` | `/api/groq` | Rate-limited Groq proxy used by the web console and Chrome extension (10 req/min/IP). |
+| `POST` | `/api/search` | Live DuckDuckGo source resolver for claim verification cards. |
+| `GET` | `/openapi.json` | OpenAPI 3.1 specification for ChatGPT Actions and OpenAPI tool importers. |
+| `GET` | `/llms.txt` | Plain-text integration summary for LLM crawlers and coding agents. |
 
 ---
 
-## Project Structure
+## Database schema (Supabase Postgres)
 
+Checks from the web console, Chrome extension, Android app, Agent Skill, MCP server, and ChatGPT Action share three tables in Supabase (`ap-south-1`):
+
+```text
+public
+├── analyses   # id, input_text, trust_score, total_claims, verified_count, unverifiable_count, false_count, model_used, user_id, created_at
+├── claims     # id, analysis_id, claim_text, status ('verified'|'unverifiable'|'false'), confidence, explanation, source_name, source_url, user_id, created_at
+└── settings   # id, key, value, user_id, updated_at
 ```
+
+Runs originating from connected assistants tag `user_id` as `skill:<client>` (for example `skill:antigravity`, `skill:claude`, or `skill:chatgpt`) and show an origin badge in the **History** view.
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_claims_analysis_id ON claims(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_analyses_created_at_desc ON analyses(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_settings_key_user ON settings(key, user_id);
+```
+
+---
+
+## Project layout
+
+```text
 hallucination-Hunter/
-├── index.html              # Core single-page interface & semantic DOM structure
-├── style.css               # Handcrafted design system (Daylight Paper & Night Press)
-├── app.js                  # Agent orchestration, verification pipeline & Supabase sync
-├── sw.js                   # Service worker cache strategy (v8)
-├── manifest.webmanifest    # Progressive Web App configuration
-├── vercel.json             # Edge headers, cache rules & security policies
+├── index.html                           # Single-page web console (Check, History, Sources, Skill, Settings, About)
+├── style.css                            # Light & dark editorial stylesheet
+├── app.js                               # Client verification flow, inline underline matcher, SpeechRecognition & Supabase sync
+├── sw.js                                # Offline shell service worker (hh-v16)
+├── openapi.json                         # OpenAPI 3.1 schema for ChatGPT Custom GPT Actions
+├── llms.txt                             # Machine-readable project & endpoint index
+├── vercel.json                          # CORS, security, and cache headers
 ├── api/
-│   ├── groq.js             # Serverless Groq inference proxy with rate limiting
-│   └── search.js           # Live search and reference discovery endpoint
-├── chrome-extension/       # Manifest V3 browser extension
-│   ├── manifest.json       # Extension configuration & permissions
-│   ├── popup.html / js     # Extension UI and verification logic
-│   ├── content.js          # In-page text capture
-│   └── background.js       # Background service worker & context menus
-├── resources/              # Capacitor Android icon & splash screen assets
-├── assets/                 # Web favicons, PWA icons, and brand video
-└── screenshots/            # UI screenshots & preview media
+│   ├── verify.js                        # Unified verify + Supabase search/sync API for LLMs, Skills & REST
+│   ├── mcp.js                           # Serverless Streamable HTTP MCP endpoint
+│   ├── groq.js                          # Browser/extension Groq proxy with per-IP rate limiting
+│   └── search.js                        # Live DuckDuckGo source lookup
+├── mcp/
+│   └── server.mjs                       # Local stdio MCP server (zero npm dependencies)
+├── skills/
+│   └── hallucination-hunter/
+│       ├── SKILL.md                     # Portable Agent Skill instructions
+│       ├── scripts/verify.mjs           # Zero-dependency Node CLI for verification & DB search
+│       └── references/platform-setup.md # Per-platform setup configs (Claude, Antigravity, ChatGPT, Cursor)
+├── chrome-extension/                    # Chrome / Edge / Brave Manifest V3 extension (v1.2)
+├── assets/                              # Favicons, PWA icons, brand media & hallucination-hunter-skill.zip
+├── resources/                           # Capacitor Android icon and splash sources
+└── screenshots/                         # Current UI screenshots used in this README
 ```
-
----
-
-## Security & Verification Integrity
-
-- **Server-Side Credential Isolation:** `GROQ_API_KEY` is never exposed to the client; all calls from web, extension, and mobile shells route through the `/api/groq` proxy.
-- **Abuse Prevention:** IP-level rate limiting prevents upstream API exhaustion.
-- **Deterministic Extraction:** Atomic statements are bound to character offsets in the source text, preventing misattribution.
-- **Anonymous Session Isolation:** Records are partitioned using random browser-stored UUID tokens without third-party tracking.
 
 ---
 
 ## License
 
-MIT &copy; [Sunil](https://github.com/Sunil56224972). See [LICENSE](LICENSE) for details.
+MIT © [Sunil](https://github.com/Sunil56224972). See [LICENSE](LICENSE) for details.

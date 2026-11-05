@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Hallucination Hunter &mdash; Fact-check AI answers</title>
-  <meta name="description" content="Paste an AI answer and check it claim by claim. Every factual statement is extracted, verified against public sources, and marked inline.">
+  <meta name="description" content="Check AI answers claim by claim in the browser, Chrome extension, or inside Claude, Antigravity, Cursor, and ChatGPT via Agent Skill, MCP, and OpenAPI.">
   <meta name="theme-color" content="#f7f6f2">
   <meta name="color-scheme" content="light dark">
   <meta property="og:title" content="Hallucination Hunter">
-  <meta property="og:description" content="Paste an AI answer and see which claims hold up, with a source for every verdict.">
+  <meta property="og:description" content="Claim-by-claim fact-checker for AI answers — web console, Agent Skill, MCP server, ChatGPT Action, and Chrome extension.">
   <meta property="og:image" content="https://hallucination-hunter-five.vercel.app/assets/icon-512.png">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
@@ -692,32 +692,36 @@ curl -sS "https://hallucination-hunter-five.vercel.app/api/verify?limit=5"</code
       <header class="page-header page-header-row">
         <div>
           <h1 class="page-title">About</h1>
-          <p class="page-subtitle">How Hallucination Hunter checks AI-generated text and what it does with your data.</p>
+          <p class="page-subtitle">How Hallucination Hunter checks AI-generated text, connects to other assistants, and stores audit records.</p>
         </div>
+        <button type="button" class="action-btn" data-goto-view="skill">Skill &amp; API setup</button>
       </header>
       <div class="about-layout">
         <div class="about-card">
           <p class="lede">Language models write in the same confident tone whether they are stating a well-known fact or inventing a number. Hallucination Hunter breaks an answer into single claims so you can see which lines hold up and which need a second look.</p>
           <h3>How a check runs</h3>
           <ol>
-            <li><strong>Split into claims.</strong> Your text is broken into standalone factual statements, keeping exact numbers, dates, and names.</li>
-            <li><strong>Verify each statement.</strong> Each claim is tested against established facts and given a 0&ndash;100 confidence score. Anything uncertain or post-cutoff is marked unverifiable rather than guessed.</li>
-            <li><strong>Attach sources.</strong> Every verdict includes an explanation, a correction when false, and a link you can inspect.</li>
-            <li><strong>Underline inline.</strong> Claims are highlighted directly inside your original passage so errors are easy to spot.</li>
+            <li><strong>Split into claims.</strong> Your text is broken into standalone factual statements, keeping exact numbers, dates, versions, and names intact.</li>
+            <li><strong>Cross-check &amp; verify.</strong> Each statement is checked against established knowledge, live DuckDuckGo source lookup, and prior records in the Supabase claims ledger. Post-cutoff or unconfirmed claims are marked unverifiable rather than guessed.</li>
+            <li><strong>Attach sources &amp; corrections.</strong> Contradicted claims include a one-sentence correction and a source URL you can open yourself.</li>
+            <li><strong>Underline inline.</strong> Claims are marked directly inside your original passage so errors stand out immediately.</li>
           </ol>
+          <h3>Works inside your LLM</h3>
+          <p>Install the bundled Agent Skill (<code>npx skills add Sunil56224972/hallucination-Hunter</code>), attach the remote MCP server (<code>/api/mcp</code>), or import the OpenAPI 3.1 schema (<code>/openapi.json</code>) into ChatGPT Actions. Connected assistants return their normal answer alongside a Hallucination Hunter verification block and sync every check back to the shared Supabase Postgres ledger.</p>
           <h3>Privacy</h3>
-          <p>Checked text is sent through a serverless API route to Groq and stored in Supabase Postgres under a random browser ID. There is no account wall, tracking cookie, or analytics script. Share links encode the report directly in the URL hash.</p>
+          <p>Checked text runs through serverless Vercel endpoints to Groq and is stored in Supabase Postgres under a random browser ID or assistant client tag (pass <code>saveToDatabase: false</code> for ephemeral checks). There is no account wall, tracking cookie, or analytics script.</p>
         </div>
 
         <aside class="spec-sheet" aria-label="Stack">
-          <h3 class="spec-title">Stack</h3>
+          <h3 class="spec-title">Stack &amp; Surfaces</h3>
           <dl class="spec-dl">
-            <div><dt>Frontend</dt><dd>Plain HTML, CSS, and ES2022 &mdash; no framework or build step</dd></div>
-            <div><dt>Model</dt><dd><code>openai/gpt-oss-120b</code> via <code>/api/groq</code> &amp; <code>/api/verify</code></dd></div>
-            <div><dt>Skill &amp; MCP</dt><dd>Agent Skill, Streamable HTTP <code>/api/mcp</code>, OpenAPI 3.1</dd></div>
-            <div><dt>Source lookup</dt><dd>Live URL resolution via <code>/api/search</code></dd></div>
-            <div><dt>Storage</dt><dd>Supabase Postgres (<code>ap-south-1</code>)</dd></div>
-            <div><dt>Extension</dt><dd>Chrome Manifest V3 popup &amp; context-menu checker</dd></div>
+            <div><dt>Web console</dt><dd>Plain HTML, CSS, and ES2022 &mdash; zero build step</dd></div>
+            <div><dt>Model</dt><dd><code>openai/gpt-oss-120b</code> via <code>/api/verify</code> &amp; <code>/api/groq</code></dd></div>
+            <div><dt>Agent Skill</dt><dd><code>skills/hallucination-hunter/SKILL.md</code> + Node CLI</dd></div>
+            <div><dt>MCP server</dt><dd>Streamable HTTP <code>/api/mcp</code> &amp; stdio <code>mcp/server.mjs</code></dd></div>
+            <div><dt>ChatGPT Action</dt><dd>OpenAPI 3.1 at <code>/openapi.json</code> + <code>/llms.txt</code></dd></div>
+            <div><dt>Database</dt><dd>Supabase Postgres (<code>ap-south-1</code> &middot; <code>analyses</code> &amp; <code>claims</code>)</dd></div>
+            <div><dt>Browser &amp; Mobile</dt><dd>Chrome Manifest V3 extension (<code>v1.2</code>) &amp; <a href="https://github.com/Sunil56224972/hallucination-Hunter/releases/download/apk-v1/HallucinationHunter.apk" target="_blank" rel="noopener">Android APK</a></dd></div>
           </dl>
         </aside>
       </div>

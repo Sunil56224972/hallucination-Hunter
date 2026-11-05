@@ -265,6 +265,9 @@ $$('.sidebar-link, .mobile-nav-link').forEach(link => {
 });
 
 $('#mast-db-pill')?.addEventListener('click', () => switchView('settings'));
+$$('[data-goto-view]').forEach(btn => {
+  btn.addEventListener('click', () => switchView(btn.dataset.gotoView));
+});
 
 // Input & example chips
 const MAX_CHARS = 20000;
