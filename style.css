@@ -164,6 +164,307 @@ code, kbd {
   outline-offset: 2px;
 }
 
+/* Boot crest sequence */
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 72% 62% at 50% 45%, #ffffff 0%, #f7f6f2 58%, #ebe8df 100%);
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.56s cubic-bezier(0.65, 0, 0.35, 1),
+    visibility 0.56s cubic-bezier(0.65, 0, 0.35, 1);
+  user-select: none;
+  cursor: pointer;
+}
+
+html:not(.hh-boot) .boot-screen {
+  display: none;
+}
+
+html.hh-boot:not(.hh-boot-out) .masthead,
+html.hh-boot:not(.hh-boot-out) .main-wrapper {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+}
+
+html.hh-boot .masthead,
+html.hh-boot .main-wrapper {
+  transition:
+    opacity 0.58s cubic-bezier(0.16, 1, 0.3, 1) 0.06s,
+    transform 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.06s;
+}
+
+html.hh-boot-out .boot-screen {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: rgba(138, 115, 74, 0.34);
+  border-style: solid;
+  border-width: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease, transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.boot-corner-tl { top: 24px; left: 24px; border-top-width: 1px; border-left-width: 1px; transform: translate3d(-6px, -6px, 0); }
+.boot-corner-tr { top: 24px; right: 24px; border-top-width: 1px; border-right-width: 1px; transform: translate3d(6px, -6px, 0); }
+.boot-corner-bl { bottom: 24px; left: 24px; border-bottom-width: 1px; border-left-width: 1px; transform: translate3d(-6px, 6px, 0); }
+.boot-corner-br { bottom: 24px; right: 24px; border-bottom-width: 1px; border-right-width: 1px; transform: translate3d(6px, 6px, 0); }
+
+.boot-screen.is-ready .boot-corner {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.boot-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding-bottom: 2.5vh;
+  transition:
+    transform 0.52s cubic-bezier(0.55, 0, 0.25, 1),
+    opacity 0.44s cubic-bezier(0.55, 0, 0.25, 1);
+}
+
+html.hh-boot-out .boot-stage {
+  transform: translate3d(0, -8px, 0) scale(1.035);
+  opacity: 0;
+}
+
+.boot-aura {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: min(520px, 88vw);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(0.84);
+  background: radial-gradient(
+    circle,
+    rgba(138, 115, 74, 0.13) 0%,
+    rgba(29, 28, 70, 0.05) 42%,
+    transparent 70%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boot-screen.is-ready .boot-aura {
+  animation: bootAuraIn 1.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.boot-crest {
+  position: relative;
+  width: min(400px, 76vw);
+  aspect-ratio: 1200 / 696;
+}
+
+.boot-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  will-change: transform, opacity, clip-path;
+  pointer-events: none;
+}
+
+.boot-eagle {
+  transform-origin: 50% 36%;
+  transform: translate3d(0, 18px, 0) scale(0.92);
+}
+
+.boot-star-center {
+  transform-origin: 50% 11.7%;
+  transform: translate3d(0, 9px, 0) scale(0.52);
+}
+
+.boot-star-left {
+  transform-origin: 40.9% 11.7%;
+  transform: translate3d(6px, 9px, 0) scale(0.56);
+}
+
+.boot-star-right {
+  transform-origin: 59.1% 11.7%;
+  transform: translate3d(-6px, 9px, 0) scale(0.56);
+}
+
+.boot-word-main {
+  transform-origin: 50% 74%;
+  clip-path: inset(0 0 100% 0);
+  transform: translate3d(0, 12px, 0);
+}
+
+.boot-word-sub {
+  transform-origin: 50% 93%;
+  transform: translate3d(0, 10px, 0) scale(0.97);
+}
+
+.boot-screen.is-ready .boot-eagle {
+  animation: bootEagleRise 0.72s cubic-bezier(0.16, 1, 0.3, 1) 0.02s forwards;
+}
+
+.boot-screen.is-ready .boot-star-center {
+  animation: bootStarLock 0.56s cubic-bezier(0.22, 1, 0.36, 1) 0.20s forwards;
+}
+
+.boot-screen.is-ready .boot-star-left,
+.boot-screen.is-ready .boot-star-right {
+  animation: bootStarLock 0.56s cubic-bezier(0.22, 1, 0.36, 1) 0.30s forwards;
+}
+
+.boot-screen.is-ready .boot-word-main {
+  animation: bootWordMask 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.36s forwards;
+}
+
+.boot-screen.is-ready .boot-word-sub {
+  animation: bootSubSettle 0.58s cubic-bezier(0.16, 1, 0.3, 1) 0.50s forwards;
+}
+
+.boot-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  -webkit-mask-image: url("assets/brand/boot-lockup.png");
+  mask-image: url("assets/brand/boot-lockup.png");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.boot-sheen::after {
+  content: "";
+  position: absolute;
+  inset: -25% -40%;
+  background: linear-gradient(
+    108deg,
+    transparent 38%,
+    rgba(255, 247, 226, 0) 43%,
+    rgba(255, 245, 214, 0.58) 50%,
+    rgba(196, 164, 100, 0.32) 54%,
+    transparent 60%
+  );
+  transform: translate3d(-72%, 0, 0);
+  will-change: transform;
+}
+
+.boot-screen.is-ready .boot-sheen::after {
+  animation: bootFoilSweep 0.92s cubic-bezier(0.25, 1, 0.4, 1) 0.62s forwards;
+}
+
+.boot-meter {
+  width: min(132px, 36vw);
+  height: 1.5px;
+  background: rgba(29, 28, 70, 0.10);
+  border-radius: 99px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.boot-screen.is-ready .boot-meter {
+  animation: bootMeterShow 0.35s ease 0.24s forwards;
+}
+
+.boot-meter-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1d1c46 0%, #8a734a 62%, #b59a66 100%);
+  transform-origin: left center;
+  transform: scaleX(0);
+  will-change: transform;
+}
+
+.boot-screen.is-ready .boot-meter-fill {
+  animation: bootMeterFill 1.36s cubic-bezier(0.22, 1, 0.36, 1) 0.24s forwards;
+}
+
+@keyframes bootAuraIn {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.84); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+@keyframes bootEagleRise {
+  0% { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.92); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes bootStarLock {
+  0% { opacity: 0; transform: translate3d(0, 9px, 0) scale(0.52); }
+  70% { opacity: 1; transform: translate3d(0, -1px, 0) scale(1.04); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes bootWordMask {
+  0% { opacity: 0; clip-path: inset(0 0 100% 0); transform: translate3d(0, 12px, 0); }
+  100% { opacity: 1; clip-path: inset(0 0 0% 0); transform: translate3d(0, 0, 0); }
+}
+
+@keyframes bootSubSettle {
+  0% { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.97); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes bootFoilSweep {
+  0% { transform: translate3d(-72%, 0, 0); }
+  100% { transform: translate3d(72%, 0, 0); }
+}
+
+@keyframes bootMeterShow {
+  to { opacity: 1; }
+}
+
+@keyframes bootMeterFill {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-screen.is-ready .boot-layer {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+  .boot-sheen,
+  .boot-meter {
+    display: none;
+  }
+  html.hh-boot .masthead,
+  html.hh-boot .main-wrapper {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .boot-corner {
+    width: 14px;
+    height: 14px;
+  }
+  .boot-corner-tl, .boot-corner-tr { top: 16px; }
+  .boot-corner-bl, .boot-corner-br { bottom: 16px; }
+  .boot-corner-tl, .boot-corner-bl { left: 16px; }
+  .boot-corner-tr, .boot-corner-br { right: 16px; }
+  .boot-stage {
+    gap: 22px;
+  }
+}
+
 /* Accessibility & offline */
 .skip-link {
   position: fixed;

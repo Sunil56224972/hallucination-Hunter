@@ -19,8 +19,15 @@
         var dark = m === 'dark' || (m === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
       } catch (e) {}
+      try {
+        if (!/[?&](text|nosplash|share)\b/.test(location.search)) {
+          document.documentElement.classList.add('hh-boot');
+        }
+      } catch (e) {}
     })();
   </script>
+  <link rel="preload" as="image" href="assets/brand/boot-eagle.png">
+  <link rel="preload" as="image" href="assets/brand/boot-word-main.png">
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -32,6 +39,87 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" defer></script>
 </head>
 <body>
+  <div class="boot-screen" id="boot-screen" aria-hidden="true">
+    <span class="boot-corner boot-corner-tl"></span>
+    <span class="boot-corner boot-corner-tr"></span>
+    <span class="boot-corner boot-corner-bl"></span>
+    <span class="boot-corner boot-corner-br"></span>
+
+    <div class="boot-stage">
+      <div class="boot-aura"></div>
+      <div class="boot-crest">
+        <img class="boot-layer boot-eagle" src="assets/brand/boot-eagle.png" alt="" width="1200" height="696" decoding="sync">
+        <img class="boot-layer boot-star boot-star-center" src="assets/brand/boot-star-center.png" alt="" width="1200" height="696" decoding="sync">
+        <img class="boot-layer boot-star boot-star-left" src="assets/brand/boot-star-left.png" alt="" width="1200" height="696" decoding="sync">
+        <img class="boot-layer boot-star boot-star-right" src="assets/brand/boot-star-right.png" alt="" width="1200" height="696" decoding="sync">
+        <img class="boot-layer boot-word-main" src="assets/brand/boot-word-main.png" alt="" width="1200" height="696" decoding="sync">
+        <img class="boot-layer boot-word-sub" src="assets/brand/boot-word-sub.png" alt="" width="1200" height="696" decoding="sync">
+        <div class="boot-sheen"></div>
+      </div>
+      <div class="boot-meter">
+        <span class="boot-meter-fill"></span>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var box = document.getElementById('boot-screen');
+      if (!box) return;
+      if (!root.classList.contains('hh-boot')) {
+        if (box.parentNode) box.parentNode.removeChild(box);
+        return;
+      }
+
+      var done = false;
+      var exitTimer = null;
+
+      function finish() {
+        if (done) return;
+        done = true;
+        if (exitTimer) clearTimeout(exitTimer);
+        root.classList.add('hh-boot-out');
+        setTimeout(function () {
+          root.classList.remove('hh-boot', 'hh-boot-out');
+          if (box.parentNode) box.parentNode.removeChild(box);
+        }, 620);
+      }
+
+      box.addEventListener('click', finish);
+      document.addEventListener('keydown', function onKey(e) {
+        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+          document.removeEventListener('keydown', onKey);
+          finish();
+        }
+      });
+
+      var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var imgs = box.querySelectorAll('.boot-layer');
+      var maskImg = new Image();
+      maskImg.src = 'assets/brand/boot-lockup.png';
+
+      var decodes = [];
+      for (var i = 0; i < imgs.length; i++) {
+        if (imgs[i].decode) decodes.push(imgs[i].decode().catch(function () {}));
+      }
+      if (maskImg.decode) decodes.push(maskImg.decode().catch(function () {}));
+
+      var started = false;
+      function startSequence() {
+        if (started || done) return;
+        started = true;
+        requestAnimationFrame(function () {
+          box.classList.add('is-ready');
+          exitTimer = setTimeout(finish, reduce ? 520 : 1680);
+        });
+      }
+
+      Promise.all(decodes).then(startSequence);
+      setTimeout(startSequence, 280);
+      setTimeout(finish, 3200);
+    })();
+  </script>
+
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="offline-bar" id="offline-bar" role="status">You are offline. Past checks may not load and new checks cannot run until you reconnect.</div>
 
